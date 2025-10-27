@@ -50,7 +50,7 @@ class Req(Base):
         except Exception as err:
             self.LOGGER.error(f"Other error occurred: {err}")
         else:
-            self.LOGGER.info(response.json())
+            # self.LOGGER.info(response.json())
             return response.json()
 
         return None
