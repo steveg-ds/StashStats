@@ -3,6 +3,8 @@
 CodeDocs/
 dev.py
 dev.ipynb
+*.xls
+*.csv
 ## GH python.gitigore  https://github.com/github/gitignore/blob/main/Python.gitignore
 
 # Byte-compiled / optimized / DLL files
