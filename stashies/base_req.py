@@ -8,10 +8,13 @@ import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
 from dotenv import load_dotenv
-from typing import Union, Dict, Any, ClassVar
+from typing import Optional, Dict, Any, ClassVar
+from pydantic.dataclasses import dataclass
+
 from .base import Base
 
 
+@dataclass
 class Req(Base):
     """
     Base class for making Ravelry API Requests
@@ -32,7 +35,9 @@ class Req(Base):
 
     BASE_URL: str = "https://api.ravelry.com"
 
-    def get_request(self, endpoint: str) -> Union[Dict[str, Any], None]:
+    def get_request(
+        self, endpoint: str, params: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Function for making requests to Ravelry API.
         - Input
@@ -42,7 +47,7 @@ class Req(Base):
         url = f"{self.BASE_URL}/{endpoint}"
         try:
             response = requests.get(
-                url, auth=HTTPBasicAuth(self.API_USERNAME, self.API_KEY)
+                url, auth=HTTPBasicAuth(self.API_USERNAME, self.API_KEY), params=params
             )
             response.raise_for_status()
         except HTTPError as http_err:
@@ -50,17 +55,7 @@ class Req(Base):
         except Exception as err:
             self.LOGGER.error(f"Other error occurred: {err}")
         else:
-            # self.LOGGER.info(response.json())
-            return response.json()
+            # self.LOGGER.debug(response.json())
+            return dict(response.json())
 
         return None
-
-    def post_request(self) -> None:
-        self.LOGGER.error("Method not implemented")
-        pass
-
-
-if __name__ == "main":
-
-    x = Req()
-    x.get_request(endpoint="current_user.json")

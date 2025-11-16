@@ -1,38 +1,33 @@
-from pydantic import Field
-from pydantic.dataclasses import dataclass
-from typing import List, Union, Dict, Any
+from pydantic import Field, BaseModel, field_validator
+from typing import Optional, Union
 
 from .yarn_company import YarnCompany
-from .yarn_fiber import YarnFiber
 
-@dataclass
-class Yarn:
 
-    discontinued: bool = Field(...)
-
-    grams: int = Field(...)
-
+class Yarn(BaseModel):
     yarn_id: int = Field(alias="id", repr=False)
-
-    machine_washable: Union[bool, None] = Field(...)
-
     yarn_name: str = Field(alias="name")
 
-    rating_average: float = Field(...)
-    rating_count: int = Field(...)
-    rating_total: int = Field(...)
-    grams: int = Field(...)
+    discontinued: Optional[bool] = Field(...)
 
-    yardage: int = Field(...)
-    yarn_company: "YarnCompany" = Field(...)
+    grams: Optional[int] = Field(default=None)
 
-    yarn_fibers: List["YarnFiber"] = Field(...)
+    yardage: Optional[int] = Field(default=None)
 
-    yarn_attributes: Union[List[Dict[str, Any]], List[str]] = Field(...)
+    yarn_company: Optional['YarnCompany'] = Field(
+        default=None, alias="yarn_company_name"
+    )
 
-    def __post_init__(self):
-        if self.machine_washable is None:
-            self.machine_washable = False
-            
-        if isinstance(self.yarn_attributes, list):
-            self.yarn_attributes = [attr["description"] for attr in self.yarn_attributes]
+    machine_washable: Optional[bool] = Field(default=None)
+
+    rating_average: Optional[float] = Field(default=None)
+
+    rating_count: Optional[int] = Field(default=None)
+
+    rating_total: Optional[int] = Field(default=None)
+
+    @field_validator('yarn_company', mode='before')
+    def process_company_name(cls, v: Union['YarnCompany', str]) -> 'YarnCompany':
+        if isinstance(v, str):
+            v = YarnCompany(name=v)
+        return v
