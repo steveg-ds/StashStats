@@ -1,33 +1,40 @@
-from pydantic import Field, BaseModel, field_validator
-from typing import Optional, Union
+from pydantic import Field, BaseModel, field_validator, ValidationInfo
 
-from .yarn_company import YarnCompany
+from typing import Optional, Dict, Any
+
+from .yarn_photos import YarnPhotos
 
 
 class Yarn(BaseModel):
-    yarn_id: int = Field(alias="id", repr=False)
-    yarn_name: str = Field(alias="name")
+    id: int = Field(alias="id", repr=False)
+    '''Yarn ID'''
+
+    name: str = Field(alias="name")
+    '''Yarn name'''
 
     discontinued: Optional[bool] = Field(...)
+    '''Indicates if yarn has been discontinued'''
 
-    grams: Optional[int] = Field(default=None)
+    grams: Optional[int] = Field(...)
+    '''grams of one skein of yarn'''
 
-    yardage: Optional[int] = Field(default=None)
+    yardage: Optional[int] = Field(...)
+    '''yardage of one skein of yarn'''
 
-    yarn_company: Optional['YarnCompany'] = Field(
-        default=None, alias="yarn_company_name"
-    )
+    yarn_company: str = Field(..., alias="yarn_company_name")
+    '''company name of yarn'''
 
-    machine_washable: Optional[bool] = Field(default=None)
+    machine_washable: Optional[bool] = Field(...)
+    '''Indicates if yarn is machine washable'''
 
-    rating_average: Optional[float] = Field(default=None)
+    photos: Optional['YarnPhotos'] = Field(..., alias='first_photo')
+    '''stores instance of the `YarnPhotos` dataclass. 
+        Contains URLS for square, medium, thumbnail, and small photo sizes
+    '''
 
-    rating_count: Optional[int] = Field(default=None)
+    @field_validator('photos', mode='before')
+    def set_yarn_id(cls, v: Dict[str, Any], info: ValidationInfo) -> Any:
+        if v is not None:
+            v['yarn_id'] = info.data['id']
 
-    rating_total: Optional[int] = Field(default=None)
-
-    @field_validator('yarn_company', mode='before')
-    def process_company_name(cls, v: Union['YarnCompany', str]) -> 'YarnCompany':
-        if isinstance(v, str):
-            v = YarnCompany(name=v)
         return v

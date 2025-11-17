@@ -1,6 +1,8 @@
 from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 
+from stashies.components import Header, SearchBar
+
 app = Dash(
     __name__,
     external_stylesheets=[
@@ -14,56 +16,10 @@ app = Dash(
     title="Stash Stats",  # Browser tab title
 )
 
-header = dbc.Row(
-    [
-        html.Img(
-            src="/static/Images/logo_color.png",
-            style=dict(width="40%", height="125px"),
-        ),
-        html.Hr(style={"margin": "20px 0"}),
-    ],
-    className="justify-content-center align-items-center",
-)
 
-form = dbc.Form(
-    dbc.Row(
-        [
-            dbc.Col(
-                [
-                    dbc.InputGroup(
-                        [
-                            dbc.InputGroupText("Search"),
-                            dbc.Input(placeholder="Cool Yarn", id="search-query"),
-                        ]
-                    ),
-                ],
-                width="auto",
-            ),
-            dbc.Col(
-                dbc.InputGroup(
-                    [
-                        dbc.InputGroupText("Sort By"),
-                        dbc.Select(
-                            id="search-sort",
-                            options=[
-                                {"label": "Best Match", "value": "best_match"},
-                                {"label": "Highest Rating", "value": "high_rating"},
-                                {"label": "Most Projects", "value": "most_projects"},
-                            ],
-                            value="best_match",
-                            placeholder="Best Match",
-                        ),
-                    ]
-                ),
-                width="auto",
-            ),
-            dbc.Col(dbc.Button("Submit", color="primary"), width="auto"),
-        ],
-        justify="center",
-    ),
-)
-
-app.layout = dbc.Container([html.Div(header), html.Div(form)])
+header = Header()
+search_bar = SearchBar()
+app.layout = dbc.Container([header.layout(), search_bar.layout()])
 
 
 if __name__ == "__main__":
