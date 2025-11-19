@@ -1,7 +1,7 @@
 from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
-
-from stashies.components import Header, SearchBar
+from pydantic.dataclasses import dataclass
+from stashies.components import Header, SearchBar, SearchResults
 
 app = Dash(
     __name__,
@@ -17,14 +17,28 @@ app = Dash(
 )
 
 
-header = Header()
-search_bar = SearchBar()
-app.layout = dbc.Container([header.layout(), search_bar.layout()])
+@dataclass
+class DashApp:
 
+    header = Header()
+    search_bar = SearchBar()
+    search_results = SearchResults()
 
-if __name__ == "__main__":
+    def __postinit__(self):
+        app.layout = dbc.Container(
+            [
+                self.header.layout(),
+                self.search_bar.layout(),
+                self.search_results.layout(),
+            ]
+        )
+
     app.run(
         host="100.124.126.4",
         debug=True,
         dev_tools_hot_reload=True,
     )
+
+
+if __name__ == "__main__":
+    DashApp()

@@ -1,4 +1,5 @@
 import dash_bootstrap_components as dbc
+from dash import html
 
 
 class SearchBar:
@@ -90,7 +91,7 @@ class SearchBar:
                         ],
                         justify="center",
                     ),
-                )
+                ),
             ],
             className="justify-content-center align-items-center",
         )
