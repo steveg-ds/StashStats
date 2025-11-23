@@ -13,7 +13,9 @@ class Model:
         self, query: str, sort: str = "best", page_size: int = 10
     ) -> Union[List['Yarn'], None]:
         ENDPOINT: str = "/yarns/search.json"
+
         params = {"query": query, "page": 1, "page_size": page_size, "sort": sort}
+
         data: Optional[Dict[str, Any]] = self.req.get_request(
             endpoint=ENDPOINT, params=params
         )

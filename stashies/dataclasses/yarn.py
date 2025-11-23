@@ -14,12 +14,12 @@ class Yarn(BaseModel):
     and associated photos.
 
     - Attributes:
-        - id (int): Unique identifier for the yarn (not shown in string representation)
+        - id (int): Unique identifier for the yarn
         - name (str): Commercial name of the yarn product
         - discontinued (Optional[bool]): Flag indicating if the yarn is no longer produced
         - grams (Optional[int]): Weight of one skein in grams
         - yardage (Optional[int]): Length of one skein in yards
-        - yarn_company (str): Name of the manufacturing company
+        - company (str): Name of the manufacturing company
         - machine_washable (Optional[bool]): Indicates if yarn can be machine washed
         - photos (Optional[YarnPhotos]): Dataclass for yarn photo URLs with multiple sizes
 
@@ -31,7 +31,7 @@ class Yarn(BaseModel):
         into the photos data before validation, ensuring photo objects reference their parent yarn.
     """
 
-    id: int = Field(alias="id", repr=False)
+    id: int = Field(alias="id")
     '''Unique identifier for the yarn (not included in string representation)'''
 
     name: str = Field(alias="name")
@@ -46,7 +46,7 @@ class Yarn(BaseModel):
     yardage: Optional[int] = Field(...)
     '''Length of yarn contained in one skein/hank, measured in yards'''
 
-    yarn_company: str = Field(..., alias="yarn_company_name")
+    company: str = Field(..., alias="yarn_company_name")
     '''Name of the company that manufactures/distributes the yarn'''
 
     machine_washable: Optional[bool] = Field(...)
