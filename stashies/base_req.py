@@ -10,6 +10,7 @@ from requests.exceptions import HTTPError
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any, ClassVar
 from pydantic.dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
 
 from .base import Base
 
@@ -55,7 +56,6 @@ class Req(Base):
         except Exception as err:
             self.LOGGER.error(f"Other error occurred: {err}")
         else:
-            # self.LOGGER.debug(response.json())
             return dict(response.json())
 
         return None
