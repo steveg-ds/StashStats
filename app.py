@@ -4,6 +4,9 @@ import dash_bootstrap_components as dbc
 
 from stashies import AppController
 from stashies.components import Header, Search
+from stashies.utils import create_logger
+
+LOGGER = create_logger(logger_name='AppLogger')
 
 app = Dash(
     __name__,
@@ -17,20 +20,18 @@ app = Dash(
     ],
     title="Stash Stats",
 )
-CONTROLLER = AppController()
+CONTROLLER = AppController(
+    header_id='header-container', search_id='search-container', result_id='results-id'
+)
 
 app.layout = dbc.Container(
-    [
-        CONTROLLER.HEADER.layout,
-        CONTROLLER.SEARCH.layout,
-        CONTROLLER.SEARCH_RESULTS.layout,
-    ],
+    children=CONTROLLER.create_initial_layout(),
     fluid=True,
 )
 
 
 @callback(
-    Output(f'{CONTROLLER.SEARCH_RESULTS.container_id}', 'children'),
+    Output('results-id', 'children'),
     [
         Input('search-category', 'value'),
         Input('search-query', 'value'),
@@ -42,6 +43,7 @@ def process_search(category, query, sort, button_clicks):
     if button_clicks is None:
         raise PreventUpdate
     else:
+        LOGGER.debug("Search btn pressed")
         if category == 'yarns':
             return CONTROLLER.search_yarn(query, sort)
 

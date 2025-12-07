@@ -1,34 +1,27 @@
 from dash import html
 import dash_bootstrap_components as dbc
-
+from typing import List, Any
 from pydantic.dataclasses import dataclass
 from pydantic import Field
-from ..utils import MODEL_CONFIG
+from .base_component import BaseComponent
 
 
-@dataclass(config=MODEL_CONFIG)
-class Header:
+@dataclass
+class Header(BaseComponent):
 
-    layout: dbc.Container = Field(init=False)
+    def create_init_layout(self) -> List[dbc.Row]:
+        return [
+            dbc.Row(
+                [
+                    html.Img(
+                        src="../static/Images/logo_color.png",
+                        style=dict(width="75%", height="125px"),
+                    ),
+                    html.Hr(style={"margin": "20px 0"}),
+                ],
+                className="justify-content-center align-items-center",
+            )
+        ]
 
-    container_id: str = Field(default='header-id')
-
-    def create_layout(self) -> dbc.Container:
-        return dbc.Container(
-            [
-                dbc.Row(
-                    [
-                        html.Img(
-                            src="../static/Images/logo_color.png",
-                            style=dict(width="25%", height="125px"),
-                        ),
-                        html.Hr(style={"margin": "20px 0"}),
-                    ],
-                    className="justify-content-center align-items-center",
-                )
-            ],
-            id=self.container_id,
-        )
-
-    def __post_init__(self):
-        self.layout = self.create_layout()
+    def __post_init__(self, *args: Any, **kwargs: Any):
+        super().__post_init__(*args, **kwargs)  # call __post__init__ from parent class

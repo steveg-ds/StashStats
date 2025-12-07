@@ -1,5 +1,7 @@
 from pydantic import Field, BaseModel, field_validator, ValidationInfo
 
+import dash_bootstrap_components as dbc
+from dash import html
 
 from typing import Optional, Dict, Any, List, Union, ClassVar, Set
 
@@ -15,10 +17,10 @@ class Yarn(BaseModel):
     )
 
     id: int = Field(alias="id")
-    '''Unique identifier for the yarn (not included in string representation)'''
+    '''API Yarn ID'''
 
     name: str = Field(alias="name")
-    '''Commercial name of the yarn product'''
+    '''Name of the yarn product'''
 
     discontinued: Optional[bool] = Field(...)
     '''Indicates if the yarn has been discontinued by the manufacturer'''
@@ -48,3 +50,27 @@ class Yarn(BaseModel):
         if v is not None:
             return [colorway['name'] for colorway in v]
         return v
+
+    def create_card_display(self) -> dbc.Card:
+        return dbc.Card(
+            [
+                dbc.CardImg(src=str(self.photos.thumbnail), top=True),
+                dbc.CardBody(
+                    [
+                        html.H4(self.company, className="card-title"),
+                        dbc.Row(dbc.Label(f"Yardage: {self.yardage}")),
+                        dbc.Row(dbc.Label(f"Grams: {self.grams}")),
+                        dbc.Row(
+                            dbc.Label(
+                                f"Discontinued: {'No!' if self.discontinued is False else 'Yes :('}"
+                            )
+                        ),
+                        dbc.CardFooter(
+                            [
+                                dbc.Col(dbc.Button("Add to Stash", id=str(self.id))),
+                            ]
+                        ),
+                    ]
+                ),
+            ],
+        )

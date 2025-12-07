@@ -5,35 +5,30 @@ from pydantic import Field, HttpUrl
 from typing import Dict, Any
 
 
-from ..utils import MODEL_CONFIG
+from .base_component import BaseComponent
 
 
-@dataclass(config=MODEL_CONFIG)
-class SearchResults:
-    container_id: str = Field(default='search-results')
-    layout: dbc.Container = Field(init=False)
-
-    def create_layout(self) -> dbc.Container:
-        return dbc.Container(
-            children=None,
-            id=self.container_id,
-            fluid=True,
-            className="w-60 mx-auto d-flex justify-content-center",
-        )
+@dataclass
+class SearchResults(BaseComponent):
+    def create_init_layout(self) -> None:
+        return None
 
     def create_search_result(
         self, id: int, name: str, label_data: Dict[str, Any], photo: HttpUrl
     ) -> dbc.AccordionItem:
 
         label_components = [
-            dbc.Label(f"{key.capitalize()}: {value}")
-            for key, value in label_data.items()
+            dbc.Row(
+                [
+                    dbc.Label(f"{key.capitalize()}: {value}")
+                    for key, value in label_data.items()
+                ]
+            )
         ]
 
         labels = dbc.Col(
             label_components,
-            width=2,
-            className="d-flex flex-column justify-content-center",
+            width=self.default_width,
         )
 
         thumbnail = dbc.Col(
@@ -48,17 +43,15 @@ class SearchResults:
                     },
                 ),
             ],
-            width=2,  # Adjusted width to balance with labels
-            className="d-flex justify-content-center align-items-center",
+            width=self.default_width,  # Adjusted width to balance with labels
         )
 
         return dbc.AccordionItem(
             dbc.Row(
                 [labels, thumbnail],
-                className="d-flex justify-content-center align-items-center",
             ),
             title=name,
         )
 
-    def __post_init__(self):
-        self.layout = self.create_layout()
+    def __post_init__(self, *args: Any, **kwargs: Any):
+        super().__post_init__(*args, **kwargs)  # call __post__init__ from parent class
