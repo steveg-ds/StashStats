@@ -25,7 +25,7 @@ CONTROLLER = AppController(
 )
 
 app.layout = dbc.Container(
-    children=CONTROLLER.create_initial_layout(),
+    children=[dbc.Container(CONTROLLER.create_initial_layout(), fluid=True)],
     fluid=True,
 )
 

@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-
+from dash import html
 from pydantic.dataclasses import dataclass
 from pydantic import Field
 from typing import List, ClassVar, Dict, Literal, Any
@@ -89,6 +89,7 @@ class Search(BaseComponent):
                     dbc.Button("Submit", id=button_id, color="primary"),
                     width=self.default_width,
                 ),
+                html.Hr(style={"margin": "20px 0"}),
             ]
         )
 

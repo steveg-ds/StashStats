@@ -15,7 +15,7 @@ class BaseComponent:
 
     default_width: str = Field(default='auto', kw_only=True)
     default_className: str = Field(
-        default="w-60 mx-auto d-flex justify-content-center", kw_only=True
+        default="mx-auto d-flex justify-content-center", kw_only=True
     )
     fluid: bool = Field(default=True, kw_only=True)
 
@@ -30,6 +30,5 @@ class BaseComponent:
         self.container = dbc.Container(
             children=self.create_init_layout(),
             id=self.container_id,
-            fluid=self.fluid,
             className=self.default_className,
         )

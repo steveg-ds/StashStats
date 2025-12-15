@@ -28,6 +28,7 @@ class AppController(Base):
         sort: str = "best",
     ):
         # TODO: if query is empty, it should return a popup error modal thing of some sort.
+        # TODO: I should add yarn description stuff to the cards so they can take up more space
         yarns = self.MODEL.search_yarn(query=query, sort=sort)
 
         if yarns is not None:
@@ -36,9 +37,7 @@ class AppController(Base):
                 dbc.AccordionItem(yarn.create_card_display(), title=yarn.name)
                 for yarn in yarns
             ]
-            return dbc.Accordion(
-                accordion_items,
-            )
+            return dbc.Col(dbc.Accordion(accordion_items), width=6)
         else:
             self.LOGGER.error('Query: {query}, No Results Found')
 

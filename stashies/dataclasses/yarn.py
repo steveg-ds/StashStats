@@ -54,10 +54,13 @@ class Yarn(BaseModel):
     def create_card_display(self) -> dbc.Card:
         return dbc.Card(
             [
-                dbc.CardImg(src=str(self.photos.thumbnail), top=True),
+                dbc.CardImg(
+                    src=str(self.photos.small),
+                    top=True,
+                ),
                 dbc.CardBody(
                     [
-                        html.H4(self.company, className="card-title"),
+                        dbc.Row(dbc.Label(f"Company: {self.company}")),
                         dbc.Row(dbc.Label(f"Yardage: {self.yardage}")),
                         dbc.Row(dbc.Label(f"Grams: {self.grams}")),
                         dbc.Row(
@@ -65,12 +68,9 @@ class Yarn(BaseModel):
                                 f"Discontinued: {'No!' if self.discontinued is False else 'Yes :('}"
                             )
                         ),
-                        dbc.CardFooter(
-                            [
-                                dbc.Col(dbc.Button("Add to Stash", id=str(self.id))),
-                            ]
-                        ),
+                        dbc.Col(dbc.Button("Add to Stash", id=str(self.id))),
                     ]
                 ),
             ],
+            className="text-center",
         )
