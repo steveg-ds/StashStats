@@ -90,6 +90,41 @@ class Search(BaseComponent):
                     width=self.default_width,
                 ),
                 html.Hr(style={"margin": "20px 0"}),
+                dbc.Modal(
+                    [
+                        dbc.ModalHeader(children=None, id='yarn-modal-header'),
+                        dbc.ModalBody(children=None, id='yarn-modal-body'),
+                        dbc.ModalFooter(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Button(
+                                            "Close",
+                                            id="yarn-modal-close-btn",
+                                            className="ms-auto",
+                                            n_clicks=0,
+                                        )
+                                    ]
+                                ),
+                                dbc.Col(
+                                    [
+                                        dbc.Button(
+                                            "confirm",
+                                            id="yarn-modal-action-btn",
+                                            className="ms-auto",
+                                            n_clicks=0,
+                                        )
+                                    ]
+                                ),
+                            ]
+                        ),
+                    ],
+                    id="yarn-modal",
+                    centered=True,
+                    is_open=False,
+                    autofocus=True,
+                    backdrop=True,
+                ),
             ]
         )
 

@@ -1,4 +1,4 @@
-from pydantic import Field, BaseModel, field_validator, ValidationInfo
+from pydantic import Field, BaseModel, field_validator, ValidationInfo, AliasChoices
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -11,10 +11,6 @@ from ..utils.model_config import MODEL_CONFIG
 
 class Yarn(BaseModel):
     model_config = MODEL_CONFIG
-
-    result_params: ClassVar[Set[str]] = Field(
-        default={'discontinued', 'grams', 'yardage'}, init=False, repr=False
-    )
 
     id: int = Field(alias="id")
     '''API Yarn ID'''
@@ -31,7 +27,12 @@ class Yarn(BaseModel):
     yardage: Optional[int] = Field(...)
     '''Length of yarn contained in one skein/hank, measured in yards'''
 
-    company: str = Field(..., alias="yarn_company_name")
+    company: str = Field(
+        ...,
+        validation_alias=AliasChoices(
+            "yarn_company_name", "company_name", "company", 'yarn_company'
+        ),
+    )
     '''Name of the company that manufactures/distributes the yarn'''
 
     machine_washable: Optional[bool] = Field(...)
@@ -39,7 +40,10 @@ class Yarn(BaseModel):
 
     colorways: Optional[List[str]] = Field(default=None, init=False)
 
-    photos: 'YarnPhotos' = Field(default_factory=YarnPhotos, alias='first_photo')
+    photos: 'YarnPhotos' = Field(
+        default_factory=YarnPhotos,
+        validation_alias=AliasChoices('first_photo', 'photos'),
+    )
     '''Container for yarn photo URLs with multiple size variants.
     '''
 
@@ -51,12 +55,29 @@ class Yarn(BaseModel):
             return [colorway['name'] for colorway in v]
         return v
 
+    @field_validator('photos', mode='before')
+    def convert_photo_list(
+        cls, v: Union[List[Dict[str, Any]], Dict[str, Any]]
+    ) -> 'YarnPhotos':
+        if isinstance(v, list):
+            from random import choice
+
+            v = choice(v)
+        return YarnPhotos(**v)
+
+    @field_validator('company', mode='before')
+    def get_company_name(v: Union[Dict[str, Any], str]) -> str:
+        if isinstance(v, dict):
+            return v['name']
+        return v
+
     def create_card_display(self) -> dbc.Card:
         return dbc.Card(
             [
                 dbc.CardImg(
                     src=str(self.photos.small),
                     top=True,
+                    style={"width": "75%", "margin": "0 auto", "display": "block"},
                 ),
                 dbc.CardBody(
                     [
@@ -68,9 +89,21 @@ class Yarn(BaseModel):
                                 f"Discontinued: {'No!' if self.discontinued is False else 'Yes :('}"
                             )
                         ),
-                        dbc.Col(dbc.Button("Add to Stash", id=str(self.id))),
+                        dbc.Col(
+                            dbc.Button(
+                                "Add to Stash",
+                                id={
+                                    "type": "search-result-button",
+                                    "index": str(self.id),
+                                },
+                                className="mt-2",
+                            )
+                        ),
                     ]
                 ),
             ],
             className="text-center",
         )
+
+    def create_yarn_modal(self):
+        return ()

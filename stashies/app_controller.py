@@ -2,7 +2,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 from .base import Base
 
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Tuple
 
 from .model import Model
 from .components import Header, Search, SearchResults, BaseComponent
@@ -41,5 +41,10 @@ class AppController(Base):
         else:
             self.LOGGER.error('Query: {query}, No Results Found')
 
-    def __post_init__(self):
-        pass
+    def populate_yarn_modal(self, yarn_id: str):
+        yarn = self.MODEL.get_full_yarn(yarn_id=yarn_id)
+
+        if yarn is not None:
+            self.LOGGER.debug(f"Yarn: {yarn.name}")
+
+        return (True, dbc.Container(dbc.Label('Modal placeholder')))

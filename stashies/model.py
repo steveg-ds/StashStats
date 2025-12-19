@@ -1,13 +1,14 @@
 from pydantic.dataclasses import dataclass
-from pydantic import Field
+from pydantic import Field, ValidationError
 from typing import Dict, Any, List, Union, Optional
 from .base_req import Req
+from .base import Base
 from .dataclasses import Yarn
 
 
 @dataclass
-class Model:
-    req: 'Req' = Field(default_factory=Req)
+class Model(Base):
+    REQ: 'Req' = Field(default_factory=Req)
 
     def search_yarn(
         self,
@@ -18,7 +19,7 @@ class Model:
 
         params = {"query": query, "page": 1, "page_size": page_size, "sort": sort}
 
-        data: Optional[Dict[str, Any]] = self.req.get_request(
+        data: Optional[Dict[str, Any]] = self.REQ.get_request(
             endpoint="/yarns/search.json", params=params
         )
         if data is not None:
@@ -26,17 +27,19 @@ class Model:
             return yarns
         return None
 
-    def search_colorways(self, yarn_id: int) -> Union[List[str], None]:
-
-        params = {"include": "colorways"}
-
+    def get_full_yarn(self, yarn_id: Union[str, int]) -> Optional['Yarn']:
         try:
-            data: Optional[Dict[str, Any]] = self.req.get_request(
-                endpoint=f"yarns/{yarn_id}.json", params=params
+            result = self.REQ.get_request(
+                endpoint=f"yarns/{yarn_id}.json", params={'include': 'colorways'}
             )
-            if data is not None:
+            if result is not None:
+                yarn = Yarn(**result['yarn'])
+                yarn.colorways = result['colorways']
 
-                return [colorway['name'] for colorway in data['colorways']]
+                return yarn
+
+            return None
+        except ValidationError as e:
+            self.LOGGER.error(e)
         except Exception as e:
-            print(e)
-        return None
+            self.LOGGER.error(e)
