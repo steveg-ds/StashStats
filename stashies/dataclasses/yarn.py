@@ -1,7 +1,7 @@
 from pydantic import Field, BaseModel, field_validator, ValidationInfo, AliasChoices
 
 import dash_bootstrap_components as dbc
-from dash import html
+from dash import dcc
 
 from typing import Optional, Dict, Any, List, Union, ClassVar, Set
 
@@ -52,7 +52,7 @@ class Yarn(BaseModel):
         cls, v: Optional[List[Dict[str, Any]]]
     ) -> Union[List[str], None]:
         if v is not None:
-            return [colorway['name'] for colorway in v]
+            return list(set(sorted([colorway['name'] for colorway in v])))
         return v
 
     @field_validator('photos', mode='before')
@@ -66,7 +66,7 @@ class Yarn(BaseModel):
         return YarnPhotos(**v)
 
     @field_validator('company', mode='before')
-    def get_company_name(v: Union[Dict[str, Any], str]) -> str:
+    def get_company_name(cls, v: Union[Dict[str, Any], str]) -> str:
         if isinstance(v, dict):
             return v['name']
         return v
@@ -105,5 +105,55 @@ class Yarn(BaseModel):
             className="text-center",
         )
 
-    def create_yarn_modal(self):
-        return ()
+    def create_yarn_modal_body(self):
+        return dbc.Container(
+            [
+                dbc.Row(
+                    dbc.Col(
+                        [
+                            dbc.Row(
+                                dbc.InputGroup(
+                                    [
+                                        dbc.InputGroupText("Colorway:"),
+                                        dbc.Select(
+                                            id='yarn-modal-colorway-select',
+                                            options=self.colorways,
+                                            placeholder="Select Colorway",
+                                            required=True,
+                                        ),
+                                    ]
+                                ),
+                                className="mb-3",  # Add spacing between rows
+                                justify='center',
+                            ),
+                            dbc.Row(
+                                dbc.InputGroup(
+                                    [
+                                        dbc.InputGroupText("# of Skeins:"),
+                                        dbc.Input(
+                                            type='number',
+                                            min=0,
+                                            max=50,
+                                            step=1,
+                                            value=0,
+                                            id='yarn-modal-skein-select',
+                                        ),
+                                    ]
+                                ),
+                                justify='center',
+                            ),
+                            dbc.Row(
+                                children=None,
+                                id='yarn-modal-quantity-row',
+                            ),  # TODO: create callback that multiplies num. skeins by grams and yardage
+                        ],
+                        width="auto",  # Use auto width to avoid full width
+                    ),
+                    className="h-100",  # Make row full height
+                    justify='center',
+                    align='center',
+                ),
+            ],
+            fluid=True,
+            className="h-100 d-flex align-items-center justify-content-center",  # Key classes for centering
+        )

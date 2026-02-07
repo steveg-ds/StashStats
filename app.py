@@ -21,6 +21,7 @@ app = Dash(
         dbc.themes.DARKLY,
     ],
     prevent_initial_callbacks=True,
+    suppress_callback_exceptions=True,
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     title="Stash Stats",
 )
@@ -56,23 +57,15 @@ def process_search(category, query, sort, button_clicks):
         Output("yarn-modal", "is_open"),
         Output("yarn-modal-header", "children"),
         Output("yarn-modal-body", "children"),
-        Output("yarn-modal-close-btn", "children"),
-        Output("yarn-modal-action-btn", "children"),
     ],
+    Output('memory-output', 'data'),
     Input({"type": "search-result-button", "index": ALL}, "n_clicks"),
-    Input("yarn-modal-close-btn", "n_clicks"),
-    Input("yarn-modal-action-btn", "n_clicks"),
-    [State("yarn-modal", "is_open")],
+    State("yarn-modal", "is_open"),
     prevent_initial_call=True,
 )
-def open_yarn_modal(n_clicks_list, close_btn, action_btn, is_open):
-    # TODO: add this functionality to an AppController function
-    ## 1. Check if modal is open:
-    ##  - if open + close_btn clicks == 1: close modal
-    ## 2. check callback_context logic to populate the modal with yarn data
-    ##  - display error message if something goes wrong
-    ##  - If no error, display stuff for adding yarn to stash: colorways, # of skeins, etc
-    ##  -
+def open_yarn_modal(n_clicks_list, is_open):
+    # TODO: add fade to modal -> https://www.dash-bootstrap-components.com/docs/components/fade/
+    # TODO: big callbacks should be moved to app_controller
     ctx = callback_context
 
     if not ctx.triggered:
@@ -84,7 +77,6 @@ def open_yarn_modal(n_clicks_list, close_btn, action_btn, is_open):
     button_id = loads(button_id_str)
     yarn_id = button_id["index"]
 
-    # Check if this was a real click (n_clicks > 0)
     # Get all button IDs to find the index
     all_button_ids = []
     for inp in ctx.inputs_list[0]:  # First input group
@@ -94,20 +86,33 @@ def open_yarn_modal(n_clicks_list, close_btn, action_btn, is_open):
     try:
         button_index = all_button_ids.index(yarn_id)
 
-        # Check if this button was actually clicked
+        # prevent update if button not clicked
         if n_clicks_list[button_index] is None:
-            # Button exists but hasn't been clicked yet
-            LOGGER.debug(f"Button {yarn_id} exists but n_clicks is None")
             raise PreventUpdate
 
         LOGGER.debug(f"Button {yarn_id}")
-        modal_children = CONTROLLER.populate_yarn_modal(yarn_id=yarn_id)
         return CONTROLLER.populate_yarn_modal(yarn_id=yarn_id)
 
-        return [True, modal_children]
     except ValueError:
         LOGGER.error(f"Button with yarn_id {yarn_id} not found in inputs")
         raise PreventUpdate
+
+
+@callback(
+    Output('yarn-modal-quantity-row', 'children'),
+    [
+        Input('yarn-modal-colrway-select', 'value'),
+        Input('yarn-modal-skein-select', 'value'),
+        Input('search-sort', 'value'),
+        Input('yarn-modal-action-btn', 'n_clicks'),
+    ],
+)
+def update_yarn_modal(colorway, skein_num, button_clicks):
+    if button_clicks is None:
+        raise PreventUpdate
+    else:
+        return None
+    return None
 
 
 if __name__ == "__main__":

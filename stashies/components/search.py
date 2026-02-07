@@ -90,7 +90,7 @@ class Search(BaseComponent):
                     width=self.default_width,
                 ),
                 html.Hr(style={"margin": "20px 0"}),
-                dbc.Modal(
+                dbc.Modal(  # TODO: make this its own component
                     [
                         dbc.ModalHeader(children=None, id='yarn-modal-header'),
                         dbc.ModalBody(children=None, id='yarn-modal-body'),

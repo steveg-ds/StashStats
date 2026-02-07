@@ -15,7 +15,7 @@ def create_logger(logger_name: str) -> logging.Logger:
         # Create console handler with a specific format
         console_handler = logging.StreamHandler()
         formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            "%(name)s - %(levelname)s - %(message)s"  # %(asctime)s - add this to beginninng of string to bring back timestamps
         )
         console_handler.setFormatter(formatter)
 

@@ -8,6 +8,7 @@ from .dataclasses import Yarn
 
 @dataclass
 class Model(Base):
+    # TODO: eventually I should set up redis/ memory caching to reduce API hits
     REQ: 'Req' = Field(default_factory=Req)
 
     def search_yarn(

@@ -1,5 +1,6 @@
 from dash import html
 import dash_bootstrap_components as dbc
+from dash import dcc
 from .base import Base
 
 from typing import Dict, Any, List, Union, Tuple
@@ -20,6 +21,7 @@ class AppController(Base):
             self.HEADER.container,
             self.SEARCH.container,
             self.SEARCH_RESULTS.container,
+            dbc.Container(dcc.Store(id='memory-output')),
         ]
 
     def search_yarn(
@@ -47,4 +49,13 @@ class AppController(Base):
         if yarn is not None:
             self.LOGGER.debug(f"Yarn: {yarn.name}")
 
-        return (True, dbc.Container(dbc.Label('Modal placeholder')))
+            return [
+                True,
+                dbc.Container(  # Yarn modal header
+                    dbc.Label(f"Add '{yarn.name}' to stash?"),
+                    className="d-flex justify-content-center align-items-center",
+                    style={"height": "100%", "width": "100%"},
+                ),
+                yarn.create_yarn_modal_body(),
+                yarn.model_dump(),
+            ]
