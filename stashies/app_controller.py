@@ -1,12 +1,11 @@
-from dash import html
+from typing import Any, Dict, List, Tuple, Union
+
 import dash_bootstrap_components as dbc
-from dash import dcc
+from dash import dcc, html
+
 from .base import Base
-
-from typing import Dict, Any, List, Union, Tuple
-
+from .components import BaseComponent, Header, Search, SearchResults
 from .model import Model
-from .components import Header, Search, SearchResults, BaseComponent
 
 
 class AppController(Base):
@@ -42,20 +41,3 @@ class AppController(Base):
             return dbc.Col(dbc.Accordion(accordion_items), width=6)
         else:
             self.LOGGER.error('Query: {query}, No Results Found')
-
-    def populate_yarn_modal(self, yarn_id: str):
-        yarn = self.MODEL.get_full_yarn(yarn_id=yarn_id)
-
-        if yarn is not None:
-            self.LOGGER.debug(f"Yarn: {yarn.name}")
-
-            return [
-                True,
-                dbc.Container(  # Yarn modal header
-                    dbc.Label(f"Add '{yarn.name}' to stash?"),
-                    className="d-flex justify-content-center align-items-center",
-                    style={"height": "100%", "width": "100%"},
-                ),
-                yarn.create_yarn_modal_body(),
-                yarn.model_dump(),
-            ]

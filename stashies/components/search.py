@@ -1,8 +1,9 @@
+from typing import Any, ClassVar, Dict, List, Literal
+
 import dash_bootstrap_components as dbc
 from dash import html
-from pydantic.dataclasses import dataclass
 from pydantic import Field
-from typing import List, ClassVar, Dict, Literal, Any
+from pydantic.dataclasses import dataclass
 
 from .base_component import BaseComponent
 
@@ -90,41 +91,6 @@ class Search(BaseComponent):
                     width=self.default_width,
                 ),
                 html.Hr(style={"margin": "20px 0"}),
-                dbc.Modal(  # TODO: make this its own component
-                    [
-                        dbc.ModalHeader(children=None, id='yarn-modal-header'),
-                        dbc.ModalBody(children=None, id='yarn-modal-body'),
-                        dbc.ModalFooter(
-                            [
-                                dbc.Col(
-                                    [
-                                        dbc.Button(
-                                            "Close",
-                                            id="yarn-modal-close-btn",
-                                            className="ms-auto",
-                                            n_clicks=0,
-                                        )
-                                    ]
-                                ),
-                                dbc.Col(
-                                    [
-                                        dbc.Button(
-                                            "confirm",
-                                            id="yarn-modal-action-btn",
-                                            className="ms-auto",
-                                            n_clicks=0,
-                                        )
-                                    ]
-                                ),
-                            ]
-                        ),
-                    ],
-                    id="yarn-modal",
-                    centered=True,
-                    is_open=False,
-                    autofocus=True,
-                    backdrop=True,
-                ),
             ]
         )
 
