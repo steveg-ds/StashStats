@@ -35,7 +35,14 @@ class AppController(Base):
         if yarns is not None:
             self.LOGGER.debug(f"Query: {query}, # of Yarns Found: {len(yarns)}")
             accordion_items: List[dbc.AccordionItem] = [
-                dbc.AccordionItem(yarn.create_card_display(), title=yarn.name)
+                dbc.AccordionItem(
+                    children=None,
+                    title=yarn.name,
+                    id={
+                        "type": "search-result-button",
+                        "index": str(yarn.id),
+                    },
+                )
                 for yarn in yarns
             ]
             return dbc.Col(dbc.Accordion(accordion_items), width=6)

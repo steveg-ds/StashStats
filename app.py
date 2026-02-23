@@ -1,10 +1,11 @@
 from json import loads
 
 import dash_bootstrap_components as dbc
-from dash import ALL, Dash, Input, Output, State, callback, callback_context
+from dash import ALL, MATCH, Dash, Input, Output, State, callback
+from dash import callback_context as ctx
 from dash.exceptions import PreventUpdate
 
-from stashies import AppController
+from stashies import AppController, Model
 from stashies.utils import create_logger
 
 LOGGER = create_logger(logger_name='AppLogger')
@@ -28,23 +29,27 @@ app.layout = dbc.Container(children=CONTROLLER.create_initial_layout(), fluid=Tr
 
 @callback(
     Output('results-id', 'children'),
-    [
-        Input('search-category', 'value'),
-        Input('search-query', 'value'),
-        Input('search-sort', 'value'),
-        Input({"type": "search-result-button", "index": ALL}, "n_clicks"),
-        Input('search-button', 'n_clicks'),
-    ],
+    Output('search-button', 'n_clicks'),
+    Input('search-category', 'value'),
+    Input('search-query', 'value'),
+    Input('search-sort', 'value'),
+    Input({"type": "yarn-accordion-item", "index": ALL}, "n_clicks"),
+    Input('search-button', 'n_clicks'),
 )
-def process_search(category, query, sort, button_clicks):
-    if button_clicks is None:
+def process_search(category, query, sort, accordion_clicks, button_clicks):
+    # Dash now passes accordion_clicks as a LIST of values
+    if button_clicks is None and not any(accordion_clicks):
         raise PreventUpdate
-    else:
-        LOGGER.debug("Search btn pressed")
-        if category == 'yarns':
-            return CONTROLLER.search_yarn(query, sort)
 
-    return None
+    # Check which one actually triggered the callback
+    triggered_id = ctx.triggered_id
+
+    # If the search button was clicked OR an accordion item was clicked
+    if category == 'yarns':
+        LOGGER.debug(f"Search triggered by: {triggered_id}")
+        return CONTROLLER.search_yarn(query, sort), None
+
+    return no_update, no_update
 
 
 if __name__ == "__main__":
