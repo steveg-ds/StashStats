@@ -1,55 +1,111 @@
-from json import loads
+from typing import Dict, List
 
 import dash_bootstrap_components as dbc
-from dash import ALL, MATCH, Dash, Input, Output, State, callback
-from dash import callback_context as ctx
-from dash.exceptions import PreventUpdate
+import dash_mantine_components as dmc
+from dash import Dash, html
 
-from stashies import AppController, Model
 from stashies.utils import create_logger
 
 LOGGER = create_logger(logger_name='AppLogger')
 
+SEARCH_CATEGORIES: List[Dict[str, str]] = [
+    {'label': 'Yarns', 'value': 'yarns'},
+    {'label': 'Yarn Companies', 'value': 'yarn_companies'},
+    {'label': 'Personal Stash', 'value': 'personal_stash'},
+    {'label': 'Projects', 'value': 'projects'},
+    {'label': 'Patterns', 'value': 'patterns'},
+]
+
+SORT_CATEGORIES: List[Dict[str, str]] = [
+    {'label': 'Best Match', 'value': 'best_match'},
+    {'label': 'Highest Rating', 'value': 'highest_rating'},
+    {'label': 'Most Projects', 'value': 'most_projects'},
+]
+
+DEFAULT_SEARCH: str = "yarns"
+
+
+DEFAULT_SORT: str = "best_match"
+
 app = Dash(
     __name__,
-    external_stylesheets=[
-        dbc.themes.DARKLY,
-    ],
     prevent_initial_callbacks=True,
     suppress_callback_exceptions=True,
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     title="Stash Stats",
 )
-CONTROLLER = AppController(
-    header_id='header-container', search_id='search-container', result_id='results-id'
+
+HEADER: dmc.Container = dmc.Container(
+    [
+        dbc.Row(
+            [
+                html.Img(
+                    src="../static/Images/logo_color.png",
+                    style=dict(width="60%", height="125px"),
+                ),
+                html.Hr(style={"margin": "10px 0"}),
+            ],
+            className="justify-content-center align-items-center",
+        )
+    ],
+    # fluid=True,
 )
 
-app.layout = dbc.Container(children=CONTROLLER.create_initial_layout(), fluid=True)
-
-
-@callback(
-    Output('results-id', 'children'),
-    Output('search-button', 'n_clicks'),
-    Input('search-category', 'value'),
-    Input('search-query', 'value'),
-    Input('search-sort', 'value'),
-    Input({"type": "yarn-accordion-item", "index": ALL}, "n_clicks"),
-    Input('search-button', 'n_clicks'),
+SEARCHBAR: dmc.Container = dmc.Container(
+    children=dbc.Row(
+        [
+            dbc.Col(
+                [
+                    dbc.InputGroup(
+                        [
+                            dbc.InputGroupText("Category"),
+                            dbc.Select(
+                                id='category-search-input',
+                                options=SEARCH_CATEGORIES,
+                                value=DEFAULT_SEARCH,
+                                placeholder="Select Category",
+                            ),
+                        ]
+                    ),
+                ],
+            ),
+            dbc.Col(
+                [
+                    dbc.InputGroup(
+                        [
+                            dbc.InputGroupText("Search"),
+                            dbc.Input(
+                                placeholder="Flux Capacitor",
+                                id='text-search-input',
+                            ),
+                        ]
+                    ),
+                ],
+            ),
+            dbc.Col(
+                [
+                    dbc.InputGroup(
+                        [
+                            dbc.InputGroupText("Sort"),
+                            dbc.Select(
+                                id='sort-search-input',
+                                options=SORT_CATEGORIES,
+                                value=DEFAULT_SORT,
+                                placeholder="Select Sort",
+                            ),
+                        ]
+                    ),
+                ],
+            ),
+            dbc.Col(
+                dbc.Button("Submit", id='submit-search-button', color="primary"),
+            ),
+            html.Hr(style={"margin": "20px 0"}),
+        ]
+    )
 )
-def process_search(category, query, sort, accordion_clicks, button_clicks):
-    # Dash now passes accordion_clicks as a LIST of values
-    if button_clicks is None and not any(accordion_clicks):
-        raise PreventUpdate
 
-    # Check which one actually triggered the callback
-    triggered_id = ctx.triggered_id
-
-    # If the search button was clicked OR an accordion item was clicked
-    if category == 'yarns':
-        LOGGER.debug(f"Search triggered by: {triggered_id}")
-        return CONTROLLER.search_yarn(query, sort), None
-
-    return no_update, no_update
+app.layout = dmc.MantineProvider(forceColorScheme='dark', children=[HEADER, SEARCHBAR])
 
 
 if __name__ == "__main__":
