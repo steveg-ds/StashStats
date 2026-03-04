@@ -5,6 +5,8 @@ dev*
 *.xls
 *.csv
 *.toml
+*.vim
+misc/
 ## GH python.gitigore  https://github.com/github/gitignore/blob/main/Python.gitignore
 
 # Byte-compiled / optimized / DLL files
@@ -69,3 +71,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 dev.ipynb
+_extensions/quarto-ext/include-code-files/_extension.yml
+_extensions/quarto-ext/include-code-files/include-code-files.lua

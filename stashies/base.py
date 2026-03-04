@@ -1,10 +1,6 @@
 from typing import Any
 from .utils import create_logger
 
-from typing_extensions import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from logging import Logger
 
 
 class Base:
@@ -21,3 +17,4 @@ class Base:
 
         # Assign the logger to the class
         cls.LOGGER: "Logger" = create_logger(logger_name=cls.__name__)
+        '''Provides a logger object to child classes via self.LOGGER '''

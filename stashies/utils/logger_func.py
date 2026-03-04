@@ -7,8 +7,10 @@ def create_logger(logger_name: str) -> logging.Logger:
     - Parameters:
         - logger_name
     """
+    
     # Create or get the logger
     logger = logging.getLogger(logger_name)
+    '''The name to be assigned to the logger'''
 
     # Only add handlers if this logger has no handlers configured
     if not logger.handlers:

@@ -1,41 +1,33 @@
 from typing import Dict, List
 
 import dash_bootstrap_components as dbc
-import dash_mantine_components as dmc
-from dash import Dash, html
+from dash import (
+    Dash,
+    Input,
+    Output,
+    State,
+    callback,
+    callback_context,
+    dcc,
+    html,
+    no_update,
+)
+from dash.exceptions import PreventUpdate
 
 from stashies.utils import create_logger
 
 LOGGER = create_logger(logger_name='AppLogger')
 
-SEARCH_CATEGORIES: List[Dict[str, str]] = [
-    {'label': 'Yarns', 'value': 'yarns'},
-    {'label': 'Yarn Companies', 'value': 'yarn_companies'},
-    {'label': 'Personal Stash', 'value': 'personal_stash'},
-    {'label': 'Projects', 'value': 'projects'},
-    {'label': 'Patterns', 'value': 'patterns'},
-]
-
-SORT_CATEGORIES: List[Dict[str, str]] = [
-    {'label': 'Best Match', 'value': 'best_match'},
-    {'label': 'Highest Rating', 'value': 'highest_rating'},
-    {'label': 'Most Projects', 'value': 'most_projects'},
-]
-
-DEFAULT_SEARCH: str = "yarns"
-
-
-DEFAULT_SORT: str = "best_match"
-
 app = Dash(
     __name__,
     prevent_initial_callbacks=True,
     suppress_callback_exceptions=True,
+    external_stylesheets=[dbc.themes.SANDSTONE],
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     title="Stash Stats",
 )
 
-HEADER: dmc.Container = dmc.Container(
+HEADER: dbc.Container = dbc.Container(
     [
         dbc.Row(
             [
@@ -51,61 +43,25 @@ HEADER: dmc.Container = dmc.Container(
     # fluid=True,
 )
 
-SEARCHBAR: dmc.Container = dmc.Container(
-    children=dbc.Row(
-        [
-            dbc.Col(
-                [
-                    dbc.InputGroup(
-                        [
-                            dbc.InputGroupText("Category"),
-                            dbc.Select(
-                                id='category-search-input',
-                                options=SEARCH_CATEGORIES,
-                                value=DEFAULT_SEARCH,
-                                placeholder="Select Category",
-                            ),
-                        ]
-                    ),
-                ],
-            ),
-            dbc.Col(
-                [
-                    dbc.InputGroup(
-                        [
-                            dbc.InputGroupText("Search"),
-                            dbc.Input(
-                                placeholder="Flux Capacitor",
-                                id='text-search-input',
-                            ),
-                        ]
-                    ),
-                ],
-            ),
-            dbc.Col(
-                [
-                    dbc.InputGroup(
-                        [
-                            dbc.InputGroupText("Sort"),
-                            dbc.Select(
-                                id='sort-search-input',
-                                options=SORT_CATEGORIES,
-                                value=DEFAULT_SORT,
-                                placeholder="Select Sort",
-                            ),
-                        ]
-                    ),
-                ],
-            ),
-            dbc.Col(
-                dbc.Button("Submit", id='submit-search-button', color="primary"),
-            ),
-            html.Hr(style={"margin": "20px 0"}),
-        ]
-    )
+SEARCHBAR: dbc.Container = dbc.Container(
+    children=[
+        dbc.Row(
+            children=[
+                dbc.Col(dbc.Label('Tell me your wishes'), width=2),
+                dbc.Col(dbc.Input(id='search-text'), width=4),
+                dbc.Col(dbc.Button(id='submit-btn'), width=6),
+            ],
+            align='center',
+        )
+    ],
 )
 
-app.layout = dmc.MantineProvider(forceColorScheme='dark', children=[HEADER, SEARCHBAR])
+
+SEARCH_RESULTS: dbc.Container = dbc.Container(
+    children=None, id='search-results-container'
+)
+
+app.layout = dbc.Container(children=[HEADER, SEARCHBAR, SEARCH_RESULTS])
 
 
 if __name__ == "__main__":
