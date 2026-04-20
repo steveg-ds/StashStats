@@ -1,22 +1,14 @@
-"""
---- base_req.py ---
-provides basic methods for interacting with the Ravelry API
-"""
-
 import os
 import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
-from dotenv import load_dotenv
 from typing import Optional, Dict, Any, ClassVar
-from pydantic.dataclasses import dataclass
-from concurrent.futures import ThreadPoolExecutor
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .base import Base
+from stashies import Base
 
-
-@dataclass
-class Req(Base):
+class Req(Base, BaseSettings):
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
     """
     Base class for making Ravelry API Requests
 
@@ -28,13 +20,12 @@ class Req(Base):
             - parameters:
                 - endpoint (str): Endpoint for the url to be requested.
     """
+    
+    BASE_URL: ClassVar[str] = "https://api.ravelry.com"
 
-    load_dotenv()
+    API_USERNAME: str
+    API_KEY: str
 
-    API_USERNAME: ClassVar[str] = os.getenv("API_USERNAME") or ""
-    API_KEY: ClassVar[str] = os.getenv("API_KEY") or ""
-
-    BASE_URL: str = "https://api.ravelry.com"
 
     def get_request(
         self, endpoint: str, params: Optional[Dict[str, Any]] = None

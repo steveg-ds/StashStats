@@ -1,7 +1,5 @@
 from typing import Any, ClassVar, Dict, List, Optional, Set, Union
 
-import dash_bootstrap_components as dbc
-from dash import dcc
 from pydantic import AliasChoices, BaseModel, Field, ValidationInfo, field_validator
 
 from ..utils.model_config import MODEL_CONFIG
@@ -9,6 +7,7 @@ from .yarn_photos import YarnPhotos
 
 
 class Yarn(BaseModel):
+    ''''''
     model_config = MODEL_CONFIG
 
     id: int = Field(alias="id")
@@ -69,37 +68,3 @@ class Yarn(BaseModel):
         if isinstance(v, dict):
             return v['name']
         return v
-
-    def create_card_display(self) -> dbc.Card:
-        return dbc.Card(
-            [
-                dbc.CardImg(
-                    src=str(self.photos.small),
-                    top=True,
-                    style={"width": "75%", "margin": "0 auto", "display": "block"},
-                ),
-                dbc.CardBody(
-                    [
-                        dbc.Row(dbc.Label(f"Company: {self.company}")),
-                        dbc.Row(dbc.Label(f"Yardage: {self.yardage}")),
-                        dbc.Row(dbc.Label(f"Grams: {self.grams}")),
-                        dbc.Row(
-                            dbc.Label(
-                                f"Discontinued: {'No!' if self.discontinued is False else 'Yes :('}"
-                            )
-                        ),
-                        dbc.Col(
-                            dbc.Button(
-                                "Add to Stash",
-                                id={
-                                    "type": "search-result-button",
-                                    "index": str(self.id),
-                                },
-                                className="mt-2",
-                            )
-                        ),
-                    ]
-                ),
-            ],
-            className="text-center",
-        )

@@ -1,6 +1,7 @@
 from typing import Any
 from .utils import create_logger
 
+from logging import Logger
 
 
 class Base:
@@ -16,5 +17,5 @@ class Base:
         super().__init_subclass__(**kwargs)
 
         # Assign the logger to the class
-        cls.LOGGER: "Logger" = create_logger(logger_name=cls.__name__)
+        cls.LOGGER: 'Logger' = create_logger(logger_name=cls.__name__)
         '''Provides a logger object to child classes via self.LOGGER '''
