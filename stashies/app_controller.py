@@ -16,12 +16,43 @@ class AppController(Base):
         self.SEARCH_RESULTS: 'SearchResults' = SearchResults(container_id=result_id)
 
     def create_initial_layout(self) -> List[dbc.Container]:
+        # Return a tabs layout switching between Search and Stash Analytics
         return [
             self.HEADER.container,
-            self.SEARCH.container,
-            self.SEARCH_RESULTS.container,
-            dbc.Container(dcc.Store(id='memory-output')),
+            dbc.Container(
+                [
+                    dcc.Tabs(
+                        id="app-tabs",
+                        value="tab-search",
+                        children=[
+                            dcc.Tab(
+                                label="Yarn Search",
+                                value="tab-search",
+                                children=[
+                                    html.Div(style={"height": "20px"}),
+                                    self.SEARCH.container,
+                                    self.SEARCH_RESULTS.container,
+                                ],
+                                style={"backgroundColor": "#222", "color": "#fff"},
+                                selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                            ),
+                            dcc.Tab(
+                                label="Stash Analytics",
+                                value="tab-analytics",
+                                children=[
+                                    html.Div(style={"height": "20px"}),
+                                    dbc.Container(id="analytics-tab-content")
+                                ],
+                                style={"backgroundColor": "#222", "color": "#fff"},
+                                selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                            )
+                        ]
+                    ),
+                    dcc.Store(id='memory-output')
+                ]
+            )
         ]
+
 
     def search_yarn(
         self,
