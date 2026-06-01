@@ -149,3 +149,52 @@ def test_stash_yarn_flow_thread(dash_thread_server):
             browser.close()
 
 
+def test_stash_analytics_tab_thread(dash_thread_server):
+    from unittest.mock import patch, MagicMock
+    import requests
+    
+    original_get = requests.get
+    
+    def mock_get(url, *args, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        if "stash/list.json" in url:
+            mock_resp.json.return_value = {
+                "stash": [
+                    {
+                        "created_at": "2026/05/01 12:00:00 -0400",
+                        "yarn": {"yardage": 100},
+                        "packs": [{"skeins": 2}]
+                    },
+                    {
+                        "created_at": "2026/05/15 12:00:00 -0400",
+                        "yarn": {"yardage": 150},
+                        "packs": [{"skeins": 4}]
+                    }
+                ]
+            }
+            return mock_resp
+        return original_get(url, *args, **kwargs)
+
+    with patch("requests.get", side_effect=mock_get):
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            
+            page.goto(dash_thread_server)
+            page.wait_for_load_state("networkidle")
+            
+            # Click analytics tab
+            page.click("text=Stash Analytics")
+            
+            # Wait for Plotly Graph wrapper to be rendered
+            page.wait_for_selector(".js-plotly-plot")
+            
+            # Check title elements
+            graph_title = page.locator(".gtitle")
+            assert graph_title.count() > 0
+            
+            browser.close()
+
+
+
