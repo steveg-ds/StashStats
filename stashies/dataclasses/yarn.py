@@ -55,8 +55,10 @@ class Yarn(BaseModel):
 
     @field_validator('photos', mode='before')
     def convert_photo_list(
-        cls, v: Union[List[Dict[str, Any]], Dict[str, Any]]
+        cls, v: Union[List[Dict[str, Any]], Dict[str, Any], None]
     ) -> 'YarnPhotos':
+        if not v:
+            return YarnPhotos()
         if isinstance(v, list):
             from random import choice
 
