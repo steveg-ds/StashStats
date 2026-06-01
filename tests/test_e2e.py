@@ -22,6 +22,33 @@ def test_stash_yarn_flow(dash_server):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
+
+        # Intercept and mock API requests
+        def handle_route(route):
+            url = route.request.url
+            if "search.json" in url:
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"yarns": [{"id": 123, "name": "Super Wool", "yarn_company_name": "Cave Company", "discontinued": false, "grams": 100, "yardage": 220, "machine_washable": true, "first_photo": {"medium_url": "https://placehold.co/150"}}], "paginator": {}}'
+                )
+            elif "123.json" in url:
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"yarn": {"id": 123, "name": "Super Wool", "company_name": "Cave Company", "discontinued": false, "grams": 100, "yardage": 220, "machine_washable": true, "first_photo": {"medium_url": "https://placehold.co/150"}}, "colorways": [{"name": "Cave Red", "id": 1, "projects_count": 0, "stashes_count": 0}]}'
+                )
+            elif "create.json" in url:
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"stash": {"id": 999}}'
+                )
+            else:
+                route.continue_()
+
+        # Route matching api.ravelry.com requests
+        page.route("**/*api.ravelry.com*/**", handle_route)
         
         # Navigate to application
         page.goto(dash_server)
@@ -63,6 +90,7 @@ def test_stash_yarn_flow(dash_server):
         
         text = status_msg.inner_text()
         # Assert status output is received
-        assert len(text) > 0
+        assert "Success" in text or "999" in text
         
         browser.close()
+
