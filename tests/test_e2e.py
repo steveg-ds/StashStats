@@ -139,11 +139,12 @@ def test_stash_yarn_flow_thread(dash_thread_server):
             
             # Wait for the status message to appear and assert it
             status_msg = page.locator("div[id*='stash-status-msg']")
-            page.wait_for_function("element => element.textContent !== ''", status_msg.element_handle())
+            page.wait_for_function("el => el.textContent !== ''", arg=status_msg.element_handle())
             
             text = status_msg.inner_text()
             # Assert status output is received
             assert "Success" in text or "999" in text
+
             
             browser.close()
 
