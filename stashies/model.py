@@ -29,7 +29,18 @@ class Model(Base):
             return yarns
         return None
 
+    def get_stash_list(self) -> Optional[List[Dict[str, Any]]]:
+        import os
+        username = os.getenv("USERNAME") or "Thotsky"
+        endpoint = f"people/{username}/stash/list.json"
+        
+        result = self.REQ.get_request(endpoint=endpoint, params={"page_size": 100})
+        if result and "stash" in result:
+            return result["stash"]
+        return None
+
     def create_stash(self, stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+
         import os
         username = os.getenv("USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/create.json"
