@@ -27,6 +27,33 @@ class Req(Base, BaseSettings):
     API_KEY: str
 
 
+    def post_request(
+        self, endpoint: str, data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Function for making POST requests to Ravelry API.
+        """
+        url = f"{self.BASE_URL}/{endpoint}"
+        try:
+            response = requests.post(
+                url, 
+                auth=HTTPBasicAuth(self.API_USERNAME, self.API_KEY), 
+                json=data,
+                params=params
+            )
+            response.raise_for_status()
+        except HTTPError as http_err:
+            self.LOGGER.error(f"HTTP error occurred: {http_err}")
+            if response is not None:
+                self.LOGGER.error(f"Response content: {response.text}")
+        except Exception as err:
+            self.LOGGER.error(f"Other error occurred: {err}")
+        else:
+            return dict(response.json())
+
+        return None
+
+
     def get_request(
         self, endpoint: str, params: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
