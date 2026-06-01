@@ -101,6 +101,83 @@ def handle_add_to_stash(n_clicks, skeins, colorway, dyelot, location, notes, but
         return f"Error occurred: {str(e)}"
 
 
+@callback(
+    Output("analytics-tab-content", "children"),
+    Input("app-tabs", "value"),
+)
+def render_analytics(tab_value):
+    if tab_value != "tab-analytics":
+        return no_update
+
+    stash_list = CONTROLLER.MODEL.get_stash_list()
+    if not stash_list:
+        return html.Div("No stashed yarns found or API request failed.", className="text-warning mt-3")
+
+    import pandas as pd
+    import plotly.express as px
+
+    # Extract date and yardage details
+    data = []
+    for s in stash_list:
+        created_str = s.get("created_at")
+        if not created_str:
+            continue
+            
+        yarn_info = s.get("yarn") or {}
+        yardage = yarn_info.get("yardage") or 0
+        
+        packs = s.get("packs") or []
+        skeins = 1.0
+        if packs:
+            skeins_val = packs[0].get("skeins")
+            if skeins_val is not None:
+                skeins = float(skeins_val)
+        
+        total_yards = yardage * skeins
+        
+        try:
+            date_part = created_str.split(" ")[0]
+            dt = pd.to_datetime(date_part, format="%Y/%m/%d")
+            data.append({"date": dt, "yards": total_yards})
+        except Exception:
+            continue
+
+    if not data:
+        return html.Div("No valid stashed yarn records with creation dates found.", className="text-info mt-3")
+
+    df = pd.DataFrame(data)
+    df = df.sort_values("date")
+    
+    df.set_index("date", inplace=True)
+    df_monthly = df.resample("ME").sum().reset_index()
+    df_monthly["cumulative_yards"] = df_monthly["yards"].cumsum()
+
+    fig = px.line(
+        df_monthly,
+        x="date",
+        y="cumulative_yards",
+        title="Cumulative Stashed Yardage Over Time",
+        labels={"date": "Date", "cumulative_yards": "Total Stashed Yards"},
+        markers=True,
+        template="plotly_dark"
+    )
+    
+    fig.update_traces(line_color="#00bc8c")
+
+    return dbc.Row(
+        [
+            dbc.Col(
+                [
+                    html.H4("Stash Analytics Overview", className="mt-3 text-success"),
+                    html.P("Analyzing total yardage of yarns in your personal stash."),
+                    dcc.Graph(figure=fig)
+                ],
+                width=12
+            )
+        ]
+    )
+
+
 if __name__ == "__main__":
     app.run(
         host="127.0.0.1",
