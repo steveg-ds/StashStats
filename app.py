@@ -11,6 +11,8 @@ from dash import (
     dcc,
     html,
     no_update,
+    MATCH,
+    ALL,
 )
 from dash.exceptions import PreventUpdate
 
@@ -26,7 +28,7 @@ app = Dash(
     __name__,
     prevent_initial_callbacks=True,
     suppress_callback_exceptions=True,
-    external_stylesheets=[dbc.themes.SANDSTONE],
+    external_stylesheets=[dbc.themes.DARKLY],
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     title="Stash Stats",
 )
@@ -56,9 +58,53 @@ def handle_search(n_clicks, query, sort, category):
     return CONTROLLER.search_yarn(query=query, sort=sort)
 
 
+@callback(
+    Output({"type": "stash-status-msg", "index": MATCH}, "children"),
+    Input({"type": "stash-submit-btn", "index": MATCH}, "n_clicks"),
+    State({"type": "stash-skeins", "index": MATCH}, "value"),
+    State({"type": "stash-colorway", "index": MATCH}, "value"),
+    State({"type": "stash-dyelot", "index": MATCH}, "value"),
+    State({"type": "stash-location", "index": MATCH}, "value"),
+    State({"type": "stash-notes", "index": MATCH}, "value"),
+    State({"type": "stash-submit-btn", "index": MATCH}, "id"),
+)
+def handle_add_to_stash(n_clicks, skeins, colorway, dyelot, location, notes, button_id):
+    if n_clicks is None or not n_clicks:
+        raise PreventUpdate
+
+    yarn_id = button_id["index"]
+    
+    # Structure data payload matching Stash (POST) schema requirements
+    stash_payload = {
+        "yarn_id": int(yarn_id),
+        "stash_status_id": 1
+    }
+    if colorway:
+        stash_payload["colorway_name"] = colorway
+    if dyelot:
+        stash_payload["dye_lot"] = dyelot
+    if location:
+        stash_payload["location"] = location
+    if notes:
+        stash_payload["notes"] = notes
+    if skeins is not None and skeins != "":
+        stash_payload["pack"] = {"skeins": float(skeins)}
+        
+    try:
+        response = CONTROLLER.MODEL.create_stash(stash_payload)
+        if response and 'stash' in response:
+            stash_id = response['stash'].get('id', 'Unknown')
+            return f"Success! Stashed with ID: {stash_id}"
+        else:
+            return "Failed to stash yarn. Please verify credentials."
+    except Exception as e:
+        return f"Error occurred: {str(e)}"
+
+
 if __name__ == "__main__":
     app.run(
-        host="100.124.126.4",
+        host="127.0.0.1",
         debug=True,
         dev_tools_hot_reload=True,
     )
+
