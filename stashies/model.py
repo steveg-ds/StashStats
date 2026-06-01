@@ -21,8 +21,9 @@ class Model(Base):
         params = {"query": query, "page": 1, "page_size": page_size, "sort": sort}
 
         data: Optional[Dict[str, Any]] = self.REQ.get_request(
-            endpoint="/yarns/search.json", params=params
+            endpoint="yarns/search.json", params=params
         )
+
         if data is not None:
             yarns = [Yarn(**yarn) for yarn in data['yarns']]
             return yarns
