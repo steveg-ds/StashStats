@@ -28,7 +28,14 @@ class Model(Base):
             return yarns
         return None
 
+    def create_stash(self, stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        import os
+        username = os.getenv("USERNAME") or "Thotsky"
+        endpoint = f"people/{username}/stash/create.json"
+        return self.REQ.post_request(endpoint=endpoint, data=stash_data)
+
     def get_full_yarn(self, yarn_id: Union[str, int]) -> Optional['Yarn']:
+
         try:
             result = self.REQ.get_request(
                 endpoint=f"yarns/{yarn_id}.json", params={'include': 'colorways'}
