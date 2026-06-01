@@ -28,23 +28,36 @@ class AppController(Base):
         query: str,
         sort: str = "best",
     ):
-        # TODO: if query is empty, it should return a popup error modal thing of some sort.
-        # TODO: I should add yarn description stuff to the cards so they can take up more space
         yarns = self.MODEL.search_yarn(query=query, sort=sort)
 
         if yarns is not None:
             self.LOGGER.debug(f"Query: {query}, # of Yarns Found: {len(yarns)}")
-            accordion_items: List[dbc.AccordionItem] = [
-                dbc.AccordionItem(
-                    children=None,
-                    title=yarn.name,
-                    id={
-                        "type": "search-result-button",
-                        "index": str(yarn.id),
-                    },
+            
+            accordion_items: List[dbc.AccordionItem] = []
+            for y in yarns:
+                # Fetch full details including colorways/images
+                full_yarn = self.MODEL.get_full_yarn(y.id)
+                if not full_yarn:
+                    full_yarn = y
+                
+                # Get the appropriate photo URL
+                photo_url = full_yarn.photos.medium
+                
+                item = self.SEARCH_RESULTS.create_search_result(
+                    id=full_yarn.id,
+                    name=full_yarn.name,
+                    company=full_yarn.company,
+                    grams=full_yarn.grams,
+                    yardage=full_yarn.yardage,
+                    discontinued=full_yarn.discontinued,
+                    machine_washable=full_yarn.machine_washable,
+                    colorways=full_yarn.colorways,
+                    photo=photo_url,
                 )
-                for yarn in yarns
-            ]
+                accordion_items.append(item)
+                
             return dbc.Col(dbc.Accordion(accordion_items), width=6)
         else:
-            self.LOGGER.error('Query: {query}, No Results Found')
+            self.LOGGER.error(f'Query: {query}, No Results Found')
+            return html.Div("No results found.")
+
