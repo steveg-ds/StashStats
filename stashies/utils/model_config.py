@@ -1,3 +1,4 @@
+"""Shared Pydantic ConfigDict used across all StashStats models and dataclasses."""
 from pydantic import ConfigDict
 
 MODEL_CONFIG = ConfigDict(

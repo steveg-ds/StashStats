@@ -73,3 +73,6 @@ cython_debug/
 dev.ipynb
 _extensions/quarto-ext/include-code-files/_extension.yml
 _extensions/quarto-ext/include-code-files/include-code-files.lua
+stash_cache.json
+dev_changes.log
+.gemini/

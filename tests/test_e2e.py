@@ -1,6 +1,8 @@
 import subprocess
 import time
+import os
 import pytest
+from unittest.mock import patch, MagicMock
 from playwright.sync_api import sync_playwright
 
 @pytest.fixture(scope="module")
@@ -9,7 +11,7 @@ def dash_server():
     # Dash will use the default port 8050
     proc = subprocess.Popen(
         [".venv/bin/python", "app.py"],
-        env={"API_USERNAME": "test_user", "API_KEY": "test_key", "USERNAME": "test_user"}
+        env={**os.environ, "API_USERNAME": "test_user", "API_KEY": "test_key", "USERNAME": "test_user"}
     )
     # Wait for Dash app to launch
     time.sleep(3)
@@ -46,13 +48,12 @@ def dash_thread_server():
     yield "http://127.0.0.1:8099"
 
 def test_stash_yarn_flow_thread(dash_thread_server):
-    from unittest.mock import patch
     import requests
-    
+
     # We patch requests in the current process because the server runs in a thread here
     original_get = requests.get
     original_post = requests.post
-    
+
     def mock_get(url, *args, **kwargs):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -96,7 +97,6 @@ def test_stash_yarn_flow_thread(dash_thread_server):
             return mock_resp
         return original_post(url, *args, **kwargs)
 
-    from unittest.mock import MagicMock
     with patch("requests.get", side_effect=mock_get), patch("requests.post", side_effect=mock_post):
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -162,14 +162,64 @@ def test_stash_analytics_tab_thread(dash_thread_server):
             mock_resp.json.return_value = {
                 "stash": [
                     {
+                        "id": 101,
                         "created_at": "2026/05/01 12:00:00 -0400",
+                        "updated_at": "2026/05/01 12:00:00 -0400",
                         "yarn": {"yardage": 100},
                         "packs": [{"skeins": 2}]
                     },
                     {
+                        "id": 102,
                         "created_at": "2026/05/15 12:00:00 -0400",
+                        "updated_at": "2026/05/15 12:00:00 -0400",
                         "yarn": {"yardage": 150},
                         "packs": [{"skeins": 4}]
+                    },
+                    {
+                        "id": 103,
+                        "created_at": "2026/05/05 12:00:00 -0400",
+                        "updated_at": "2026/05/20 12:00:00 -0400",
+                        "yarn": {"yardage": 50},
+                        "packs": [{"skeins": 3}]
+                    }
+                ]
+            }
+            return mock_resp
+        elif "stash/101.json" in url:
+            mock_resp.json.return_value = {
+                "stash": {
+                    "id": 101,
+                    "updated_at": "2026/05/01 12:00:00 -0400",
+                    "packs": [{"skeins": 2, "total_yards": 200}]
+                }
+            }
+            return mock_resp
+        elif "stash/102.json" in url:
+            mock_resp.json.return_value = {
+                "stash": {
+                    "id": 102,
+                    "updated_at": "2026/05/15 12:00:00 -0400",
+                    "packs": [{"skeins": 4, "total_yards": 600, "project_id": 1001}]
+                }
+            }
+            return mock_resp
+        elif "stash/103.json" in url:
+            mock_resp.json.return_value = {
+                "stash": {
+                    "id": 103,
+                    "updated_at": "2026/05/20 12:00:00 -0400",
+                    "stash_status": {"id": 2, "name": "Used up"},
+                    "packs": [{"skeins": 3, "total_yards": 150}]
+                }
+            }
+            return mock_resp
+        elif "projects/list.json" in url:
+            mock_resp.json.return_value = {
+                "projects": [
+                    {
+                        "id": 1001,
+                        "completed": "2026/05/10 12:00:00 -0400",
+                        "created_at": "2026/05/10 12:00:00 -0400"
                     }
                 ]
             }
@@ -195,6 +245,26 @@ def test_stash_analytics_tab_thread(dash_thread_server):
             assert graph_title.count() > 0
             
             browser.close()
+
+
+def test_model_stash_history_and_deltas():
+    from stashies.model import _get_primary_totals
+    yarn_info = {"yardage": 200, "grams": 100}
+    
+    # 1. No packs fallback
+    res1 = _get_primary_totals([], yarn_info)
+    assert res1["yards"] == 200
+    assert res1["skeins"] == 1.0
+    
+    # 2. Packs fallback with primary/child separation
+    packs = [
+        {"primary_pack_id": None, "skeins": 2.0, "total_yards": 400.0},
+        {"primary_pack_id": 999, "skeins": 1.0, "total_yards": 200.0}
+    ]
+    res2 = _get_primary_totals(packs, yarn_info)
+    assert res2["yards"] == 400.0
+    assert res2["skeins"] == 2.0
+
 
 
 

@@ -7,7 +7,20 @@ from .yarn_photos import YarnPhotos
 
 
 class Yarn(BaseModel):
-    ''''''
+    """
+    Pydantic model representing a Ravelry yarn product.
+
+    - Properties:
+        - id (int): Ravelry numeric yarn ID.
+        - name (str): Yarn product name.
+        - discontinued (bool | None): True if yarn is no longer produced.
+        - grams (int | None): Skein weight in grams.
+        - yardage (int | None): Skein length in yards.
+        - company (str): Manufacturer name, resolved from multiple API aliases.
+        - machine_washable (bool | None): Safe for machine washing.
+        - colorways (list[str] | None): Sorted deduplicated colorway names.
+        - photos (YarnPhotos): Photo URLs in multiple sizes.
+    """
     model_config = MODEL_CONFIG
 
     id: int = Field(alias="id")
@@ -37,6 +50,7 @@ class Yarn(BaseModel):
     '''Indicates if the yarn can be safely washed in a washing machine'''
 
     colorways: Optional[List[str]] = Field(default=None, init=False)
+    '''Sorted, deduplicated list of colorway names; populated from colorways detail endpoint.'''
 
     photos: 'YarnPhotos' = Field(
         default_factory=YarnPhotos,
@@ -49,24 +63,40 @@ class Yarn(BaseModel):
     def set_colorway_list(
         cls, v: Optional[List[Dict[str, Any]]]
     ) -> Union[List[str], None]:
+        """
+        Normalise colorway list from API — deduplicate and sort by name.
+        - Input
+            - v: Raw list of colorway dicts with a 'name' key, or None.
+        - output: Sorted list of unique colorway name strings, or None.
+        """
         if v is not None:
-            return list(set(sorted([colorway['name'] for colorway in v])))
+            return sorted(set([colorway['name'] for colorway in v]))
         return v
 
     @field_validator('photos', mode='before')
     def convert_photo_list(
         cls, v: Union[List[Dict[str, Any]], Dict[str, Any], None]
     ) -> 'YarnPhotos':
+        """
+        Normalise photo data from API into a YarnPhotos instance. Always uses first photo in a list.
+        - Input
+            - v: List of photo dicts, single photo dict, or None.
+        - output: YarnPhotos instance (placeholder URLs if input empty).
+        """
         if not v:
             return YarnPhotos()
         if isinstance(v, list):
-            from random import choice
-
-            v = choice(v)
+            v = v[0]  # always use first photo for consistency
         return YarnPhotos(**v)
 
     @field_validator('company', mode='before')
     def get_company_name(cls, v: Union[Dict[str, Any], str]) -> str:
+        """
+        Resolve company name from a nested dict or plain string.
+        - Input
+            - v: Dict with a 'name' key, or a bare string.
+        - output: Company name string.
+        """
         if isinstance(v, dict):
-            return v['name']
+            return v.get('name', '')
         return v

@@ -1,8 +1,9 @@
+"""Dash component for rendering yarn search results as an accordion with inline stash-add forms."""
 import dash_bootstrap_components as dbc
 from dash import html
 from pydantic.dataclasses import dataclass
 from pydantic import Field, HttpUrl
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 
 
 from .base_component import BaseComponent
@@ -10,7 +11,19 @@ from .base_component import BaseComponent
 
 @dataclass
 class SearchResults(BaseComponent):
+    """
+    Renders yarn search results and provides an inline 'Add to Stash' form per result.
+
+    - Methods:
+        - create_init_layout: No-op; container starts empty and is populated by callbacks.
+        - create_search_result: Build a single dbc.AccordionItem for one yarn result.
+        - __post_init__: Calls parent post-init to construct the container.
+    """
     def create_init_layout(self) -> None:
+        """
+        No-op implementation — results container starts empty.
+        Results are injected by the search callback at runtime.
+        """
         return None
 
     def create_search_result(
@@ -25,6 +38,20 @@ class SearchResults(BaseComponent):
         colorways: Optional[List[str]],
         photo: HttpUrl,
     ) -> dbc.AccordionItem:
+        """
+        Build a single accordion item displaying yarn details and an inline stash form.
+        - Input
+            - id (int): Ravelry yarn ID; used as index in pattern-matching Dash callback IDs.
+            - name (str): Yarn product name shown as accordion title.
+            - company (str): Manufacturer name.
+            - grams (int | None): Skein weight in grams.
+            - yardage (int | None): Skein length in yards.
+            - discontinued (bool | None): Whether the yarn is discontinued.
+            - machine_washable (bool | None): Whether machine washing is safe.
+            - colorways (list[str] | None): Known colorway names; drives dropdown vs freetext input.
+            - photo (HttpUrl): Thumbnail image URL.
+        - output: dbc.AccordionItem containing specs, colorway badges, stash form, and thumbnail.
+        """
         # Build specification labels list
         specs = []
         specs.append(html.P(html.Strong(f"Company: {company}")))
@@ -71,11 +98,14 @@ class SearchResults(BaseComponent):
                                     step=0.1
                                 ),
                             ],
-                            width=3,
+                            xs=12,
+                            sm=4,
+                            className="mb-2 mb-sm-0",
                         ),
                         dbc.Col(
                             [
                                 dbc.Label("Colorway"),
+                                # Use a dropdown when colorways are known; fall back to freetext input otherwise
                                 dbc.Select(
                                     id={"type": "stash-colorway", "index": id},
                                     options=colorway_options,
@@ -86,7 +116,9 @@ class SearchResults(BaseComponent):
                                     placeholder="Colorway name",
                                 ),
                             ],
-                            width=4,
+                            xs=12,
+                            sm=4,
+                            className="mb-2 mb-sm-0",
                         ),
                         dbc.Col(
                             [
@@ -97,7 +129,8 @@ class SearchResults(BaseComponent):
                                     placeholder="e.g. 42"
                                 ),
                             ],
-                            width=5,
+                            xs=12,
+                            sm=4,
                         ),
                     ],
                     className="mb-2",
@@ -113,7 +146,9 @@ class SearchResults(BaseComponent):
                                     placeholder="e.g. Closet"
                                 ),
                             ],
-                            width=6,
+                            xs=12,
+                            sm=6,
+                            className="mb-2 mb-sm-0",
                         ),
                         dbc.Col(
                             [
@@ -124,7 +159,8 @@ class SearchResults(BaseComponent):
                                     placeholder="e.g. soft texture"
                                 ),
                             ],
-                            width=6,
+                            xs=12,
+                            sm=6,
                         ),
                     ],
                     className="mb-3",
@@ -133,7 +169,8 @@ class SearchResults(BaseComponent):
                     "Add Yarn to Stash", 
                     id={"type": "stash-submit-btn", "index": id}, 
                     color="success",
-                    size="sm"
+                    size="sm",
+                    className="w-100",
                 ),
                 html.Div(id={"type": "stash-status-msg", "index": id}, className="mt-2 text-info")
             ],
@@ -142,7 +179,8 @@ class SearchResults(BaseComponent):
 
         labels = dbc.Col(
             specs + colorway_components + [stash_form],
-            width=8,
+            xs=12,
+            md=8,
         )
 
         thumbnail = dbc.Col(
@@ -157,7 +195,8 @@ class SearchResults(BaseComponent):
                     },
                 ),
             ],
-            width=4,
+            xs=12,
+            md=4,
         )
 
         return dbc.AccordionItem(
@@ -168,6 +207,9 @@ class SearchResults(BaseComponent):
         )
 
     def __post_init__(self, *args: Any, **kwargs: Any):
+        """
+        Calls parent __post_init__ to build the container element.
+        """
         super().__post_init__(*args, **kwargs)  # call __post__init__ from parent class
 
 
