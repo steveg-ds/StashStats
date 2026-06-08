@@ -5,11 +5,7 @@ StashStats is a Dash-based web application for searching, tracking, and managing
 ---
 ## TODOs
 
-### Personal Stash tab
-
-- [ ] give user option to group by yarn
-- [ ] user does not need to be told that yarns are in their stash while looking at their stash
-- [ ] 
+- [ ] How well is the system of using Ravelry's stash item update times for the plots in the other tab? 
 ## Current Features
 
 ### Yarn Search Tab
@@ -76,34 +72,14 @@ tests/
   test_e2e.py                   ← Playwright E2E + unit tests (thread-based server)
 ```
 
-### Data Flow: Stash List
+### App.py
 
-```
-get_stash_list()
-  → GET /people/{user}/stash/list.json (paginated)
-  → For each entry: check stash_cache.json updated_at sentinel
-  → "dirty" entries: concurrent GET /people/{user}/stash/{id}.json
-  → Compute delta vs cached packs → append to history[]
-  → Save original_values on first encounter
-  → Write updated cache to stash_cache.json
-  → Return enriched stash list to callback
-```
+- Sets up initial app layout → CONTROLLER.create_initial_layout()
 
-### Data Flow: Analytics Plot
+### AppController.py
 
-```
-update_analytics_content()
-  → get_stash_list() [uses cache]
-  → GET /people/{user}/projects/list.json [for project subtraction dates]
-  → For each stash entry:
-      if orig snapshot exists → use as positive acquisition
-      elif packs → sum primary packs as positive acquisition
-      else → yarn-level yardage as fallback
-      → subtract packs linked to completed projects (at project date)
-      → subtract packs with used/gone status (at updated_at)
-      → append delta history events (negative = consumption)
-  → Group by date, cumsum → plot
-```
+
+
 
 ---
 
