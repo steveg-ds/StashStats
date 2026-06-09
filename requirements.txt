@@ -1,0 +1,11 @@
+dash==2.11.1
+dash-bootstrap-components==1.4.1
+pydantic==1.10.9
+pydantic-settings==2.0.2
+requests==2.31.0
+python-dotenv==1.0.0
+pandas==2.0.2
+plotly==5.15.0
+redis==4.6.0
+psycopg2-binary==2.9.6
+gunicorn==20.1.0
