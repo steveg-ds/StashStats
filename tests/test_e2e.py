@@ -4,6 +4,47 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 from playwright.sync_api import sync_playwright
+import sys
+
+# Set default env vars for tests to pass Pydantic settings checks
+os.environ.setdefault("API_USERNAME", "test_user")
+os.environ.setdefault("API_KEY", "test_key")
+os.environ.setdefault("USERNAME", "test_user")
+
+# Mock DBManager & Redis globally in test runner
+class MockDBManager:
+    _history = {}
+    _orig = {}
+
+    @classmethod
+    def get_pool(cls):
+        return MagicMock()
+
+    @classmethod
+    def get_original_values(cls, stash_id):
+        return cls._orig.get(stash_id)
+
+    @classmethod
+    def save_original_values(cls, stash_id, yards, meters, skeins, grams):
+        cls._orig[stash_id] = {"yards": yards, "meters": meters, "skeins": skeins, "grams": grams}
+
+    @classmethod
+    def get_stash_history(cls, stash_id):
+        return cls._history.get(stash_id, [])
+
+    @classmethod
+    def save_history_event(cls, stash_id, event_date, yards, meters, skeins, grams):
+        cls._history.setdefault(stash_id, []).append({
+            "date": event_date, "yards": yards, "meters": meters, "skeins": skeins, "grams": grams
+        })
+
+# Apply mocks to test environment before import
+import stashies.db
+stashies.db.DBManager = MockDBManager
+
+# Mock redis module
+sys.modules['redis'] = MagicMock()
+
 
 @pytest.fixture(scope="module")
 def dash_server():

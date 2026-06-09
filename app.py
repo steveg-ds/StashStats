@@ -31,6 +31,7 @@ app = Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     title="Stash Stats",
 )
+server = app.server
 
 CONTROLLER = AppController(
     header_id="app-header",

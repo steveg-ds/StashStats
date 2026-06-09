@@ -1,17 +1,6 @@
-.env
-.venv/
-Notes/
-dev*
-*.xls
-*.csv
-*.toml
-*.vim
-misc/
-## GH python.gitigore  https://github.com/github/gitignore/blob/main/Python.gitignore
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
 
 # C extensions
@@ -35,44 +24,20 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
 
-# IPython
-profile_default/
-ipython_config.py
+# IDEs
+.idea/
+.vscode/
 
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
-
-
-
-
-# ActiveMQ
-activemq-data/
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-
-# PyPI configuration file
-.pypirc
-dev.ipynb
-_extensions/quarto-ext/include-code-files/_extension.yml
-_extensions/quarto-ext/include-code-files/include-code-files.lua
+# Project Cache & Logs
 stash_cache.json
 dev_changes.log
+.env
+data/
 .gemini/
