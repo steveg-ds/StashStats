@@ -41,3 +41,4 @@ dev_changes.log
 .env
 data/
 .gemini/
+StashStats.md
