@@ -1,11 +1,15 @@
 """MVC Controller layer for StashStats. Wires together the Model and UI components, orchestrating search and stash interactions."""
+import datetime
 from typing import Any, Dict, List, Tuple, Union, Optional
 
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from .base import Base
-from .components import Header, Search, SearchResults, StashCard, EditModal, AnalyticsComponent
+from .components import (
+    Header, Search, SearchResults, StashCard, EditModal, AnalyticsComponent,
+    ProjectsComponent, QueueComponent, NeedlesComponent
+)
 from .model import Model
 
 
@@ -60,6 +64,9 @@ class AppController(Base):
         self.STASH_CARD: 'StashCard' = StashCard(container_id=stash_card_id)
         self.EDIT_MODAL: 'EditModal' = EditModal(container_id=modal_id)
         self.ANALYTICS: 'AnalyticsComponent' = AnalyticsComponent(container_id=analytics_id)
+        self.PROJECTS: 'ProjectsComponent' = ProjectsComponent(container_id="app-projects")
+        self.QUEUE: 'QueueComponent' = QueueComponent(container_id="app-queue")
+        self.NEEDLES: 'NeedlesComponent' = NeedlesComponent(container_id="app-needles")
 
     def create_initial_layout(self) -> List[dbc.Container]:
         """
@@ -88,6 +95,36 @@ class AppController(Base):
                             children=[
                                 html.Div(style={"height": "20px"}),
                                 dbc.Container(id="analytics-tab-content")
+                            ],
+                            style={"backgroundColor": "#222", "color": "#fff"},
+                            selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                        ),
+                        dcc.Tab(
+                            label="Projects",
+                            value="tab-projects",
+                            children=[
+                                html.Div(style={"height": "20px"}),
+                                dbc.Container(id="projects-tab-content")
+                            ],
+                            style={"backgroundColor": "#222", "color": "#fff"},
+                            selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                        ),
+                        dcc.Tab(
+                            label="Queue",
+                            value="tab-queue",
+                            children=[
+                                html.Div(style={"height": "20px"}),
+                                dbc.Container(id="queue-tab-content")
+                            ],
+                            style={"backgroundColor": "#222", "color": "#fff"},
+                            selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                        ),
+                        dcc.Tab(
+                            label="Needles & Hooks",
+                            value="tab-needles",
+                            children=[
+                                html.Div(style={"height": "20px"}),
+                                dbc.Container(id="needles-tab-content")
                             ],
                             style={"backgroundColor": "#222", "color": "#fff"},
                             selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
@@ -172,7 +209,8 @@ class AppController(Base):
             id="stash-search-query",
             placeholder="Filter stash by yarn name, brand, or colorway...",
             className="mb-4 mt-3",
-            style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #444"}
+            style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #444"},
+            debounce=True
         )
         return html.Div(
             [
@@ -223,7 +261,10 @@ class AppController(Base):
         Render basic structural layout for analytics tab content.
         - output: dbc.Row container from AnalyticsComponent.
         """
-        return self.ANALYTICS.create_init_layout()
+        layout = self.ANALYTICS.create_init_layout("yards")
+        content = self.render_analytics_content("yards")
+        layout.children[0].children[3].children = content
+        return layout
 
     def render_analytics_content(self, selected_metric: str) -> html.Div:
         """
@@ -323,7 +364,8 @@ class AppController(Base):
         colorway: Optional[str],
         dyelot: Optional[str],
         location: Optional[str],
-        notes: Optional[str]
+        notes: Optional[str],
+        date_added: Optional[str] = None
     ) -> str:
         """
         Structure payload and execute stash addition API.
@@ -334,6 +376,7 @@ class AppController(Base):
             - dyelot (str | None): Dyelot code.
             - location (str | None): Physical location.
             - notes (str | None): Stash notes.
+            - date_added (str | None): Date stash was added.
         - output: Text response explaining API result.
         """
         stash_payload = {
@@ -350,6 +393,10 @@ class AppController(Base):
             stash_payload["notes"] = notes
         if skeins is not None and skeins != "":
             stash_payload["pack"] = {"skeins": float(skeins)}
+            if date_added:
+                stash_payload["pack"]["purchased_date"] = date_added
+        elif date_added:
+            stash_payload["pack"] = {"purchased_date": date_added}
             
         try:
             response = self.MODEL.create_stash(stash_payload)
@@ -373,6 +420,7 @@ class AppController(Base):
         status_id: Optional[int],
         used_skeins: Optional[float],
         current_skeins: Optional[float],
+        usage_date: Optional[str] = None,
     ) -> Tuple[str, bool]:
         """
         Process the updates and save changes via model.
@@ -387,6 +435,7 @@ class AppController(Base):
             - status_id (int | None): Selected stash status.
             - used_skeins (float | None): Count of used skeins (usage log).
             - current_skeins (float | None): Stashed skeins baseline.
+            - usage_date (str | None): Date yarn was used.
         - output: Tuple of status message and modal visibility boolean.
         """
         if active_tab == "modal-tab-usage":
@@ -398,6 +447,9 @@ class AppController(Base):
                 return "Amount used can't be negative.", True
             remaining = max(0.0, current - used_f)
             payload = {"pack": {"skeins": remaining}}
+            if usage_date:
+                from .db import DBManager
+                DBManager.set_pending_usage_date(stash_id, usage_date)
             try:
                 result = self.MODEL.update_stash(stash_id, payload)
                 if result and "stash" in result:
@@ -440,7 +492,7 @@ class AppController(Base):
         store_data_list: list,
         btn_ids: list,
         triggered_id: str,
-    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str]:
+    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str]:
         """
         Handle opening the edit modal and loading the correct initial state.
         - Input
@@ -455,13 +507,13 @@ class AppController(Base):
         from dash import no_update
         
         if "edit-stash-cancel-btn" in triggered_id:
-            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details"
+            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
 
         try:
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
         except Exception:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details"
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
 
         sd = None
         for i, btn_id in enumerate(btn_ids or []):
@@ -470,7 +522,7 @@ class AppController(Base):
                 break
 
         if not sd:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details"
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
 
         current_skeins = sd.get("skeins") or 0
         return (
@@ -486,4 +538,70 @@ class AppController(Base):
             "",
             None,
             "modal-tab-details",
+            datetime.date.today().isoformat(),
         )
+
+    def render_projects_tab_layout(self) -> html.Div:
+        """Render layout structure for Projects tab."""
+        return self.PROJECTS.create_init_layout()
+
+    def render_projects_list(self) -> List[dbc.Col]:
+        """Fetch and render projects as card components."""
+        projects = self.MODEL.get_projects_list()
+        if not projects:
+            return [dbc.Col(html.Div("No projects found or API request failed.", className="text-warning mt-3"))]
+        return [self.PROJECTS.build_project_card(p) for p in projects]
+
+    def render_queue_tab_layout(self) -> html.Div:
+        """Render layout structure for Queue tab."""
+        return self.QUEUE.create_init_layout()
+
+    def render_queue_list(self) -> Any:
+        """Fetch and render Ravelry project queue."""
+        queue_items = self.MODEL.get_queue_list()
+        return self.QUEUE.build_queue_list(queue_items)
+
+    def render_needles_tab_layout(self) -> html.Div:
+        """Render layout structure for Needles tab."""
+        return html.Div(
+            [
+                html.H4("Needles & Hooks Organizer", className="mt-3 text-success"),
+                html.P("Keep track of your knitting needles and crochet hooks."),
+                self.NEEDLES.create_init_layout()
+            ]
+        )
+
+    def render_needles_list(self) -> Any:
+        """Fetch and render owned needles and hooks."""
+        needle_records = self.MODEL.get_needles_list()
+        return self.NEEDLES.build_needles_tables(needle_records)
+
+    def handle_reposition_queue(self, queue_id: str, direction: str) -> bool:
+        """Move a queue item up or down in rank and refresh."""
+        queue_items = self.MODEL.get_queue_list()
+        if not queue_items:
+            return False
+        
+        sorted_items = sorted(queue_items, key=lambda x: x.get("sort_order") or x.get("position_in_queue") or 999)
+        target_idx = -1
+        for idx, item in enumerate(sorted_items):
+            if str(item.get("id")) == str(queue_id):
+                target_idx = idx
+                break
+        
+        if target_idx == -1:
+            return False
+            
+        if direction == "up" and target_idx > 0:
+            new_pos = target_idx
+            return self.MODEL.reposition_queue_item(queue_id, new_pos)
+        elif direction == "down" and target_idx < len(sorted_items) - 1:
+            new_pos = target_idx + 2
+            return self.MODEL.reposition_queue_item(queue_id, new_pos)
+            
+        return False
+
+    def handle_remove_queue(self, queue_id: str) -> bool:
+        """Delete an item from Ravelry queue."""
+        return self.MODEL.remove_queue_item(queue_id)
+

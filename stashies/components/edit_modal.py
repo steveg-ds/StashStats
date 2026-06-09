@@ -1,4 +1,5 @@
 """Dash component for the edit stash modal."""
+import datetime
 from typing import Any, ClassVar, Dict, List
 import dash_bootstrap_components as dbc
 from dash import dcc, html
@@ -170,6 +171,15 @@ class EditModal(BaseComponent):
                                                                 dbc.InputGroupText("skeins", style={"backgroundColor": "#444", "color": "#ccc", "border": "1px solid #555"}),
                                                             ],
                                                             className="mb-3"
+                                                        ),
+                                                        dbc.Label("Date Used"),
+                                                        html.Br(),
+                                                        dcc.DatePickerSingle(
+                                                            id="edit-stash-usage-date",
+                                                            date=datetime.date.today().isoformat(),
+                                                            display_format="YYYY-MM-DD",
+                                                            style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #555"},
+                                                            className="w-100 mb-3"
                                                         ),
                                                         html.Div(
                                                             id="edit-stash-remaining-preview",

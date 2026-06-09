@@ -1,27 +1,36 @@
-FROM python:3.11-slim
+# Stage 1: Build virtual environment
+FROM python:3.11-slim AS builder
 
-# Prevent writing pyc files and buffering stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install system dependencies needed for psycopg2 compilation if needed (slim image might need libpq)
+# Install compilation tools (in case any packages require binary building)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
     gcc \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python requirements
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source
+# Stage 2: Minimal runtime image
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-# Expose port
 EXPOSE 8050
 
-# Run with gunicorn
-CMD ["gunicorn", "-b", "0.0.0.0:8050", "app:server"]
+CMD ["gunicorn", "-b", "0.0.0.0:8050", "--workers", "1", "--threads", "4", "app:server"]

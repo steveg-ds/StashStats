@@ -87,6 +87,15 @@ class StashCard(BaseComponent):
         sk = totals.get("skeins", 0.0)
         g = totals.get("grams", 0.0)
 
+        is_fiber = s.get("type") == "fiber"
+        if is_fiber:
+            qty_text = f"{g:,.0f} g"
+            if y > 0:
+                qty_text += f" ({y:,.0f} yds / {m:,.0f} m)"
+            quantity_element = html.Span([html.Strong("Weight: "), qty_text])
+        else:
+            quantity_element = html.Span([html.Strong("Quantity: "), f"{sk:.1f} skeins ({y:,.0f} yds / {m:,.0f} m / {g:,.0f} g)"])
+
         card_body_contents = [
             html.Div(
                 [
@@ -104,7 +113,7 @@ class StashCard(BaseComponent):
                     html.Span([html.Strong("Colorway: "), s.get("colorway_name") or "Not specified", " | "]),
                     html.Span([html.Strong("Dye Lot: "), s.get("dye_lot"), " | "]) if s.get("dye_lot") else None,
                     html.Span([html.Strong("Location: "), s.get("location"), " | "]) if s.get("location") else None,
-                    html.Span([html.Strong("Quantity: "), f"{sk:.1f} skeins ({y:,.0f} yds / {m:,.0f} m / {g:,.0f} g)"]),
+                    quantity_element,
                 ],
                 className="small text-white"
             ),

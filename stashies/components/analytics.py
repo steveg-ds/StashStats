@@ -56,7 +56,7 @@ class AnalyticsComponent(BaseComponent):
         },
     }
 
-    def create_init_layout(self) -> dbc.Row:
+    def create_init_layout(self, selected_metric: str = "yards") -> dbc.Row:
         """
         Build the initial layout container with metric dropdown selector and graph container.
         - output: dbc.Row layout for analytics.
@@ -73,7 +73,7 @@ class AnalyticsComponent(BaseComponent):
                         {"label": "Weight (grams)", "value": "grams"},
                         {"label": "Yardage (yards)", "value": "yards"},
                     ],
-                    value="yards",
+                    value=selected_metric,
                     clearable=False,
                     style={"width": "250px", "color": "#000000"},
                 )

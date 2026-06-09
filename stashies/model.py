@@ -114,7 +114,7 @@ class Model(Base):
 
     def get_stash_list(self) -> Optional[List[Dict[str, Any]]]:
         """
-        Fetch all stash entries for the configured user, enriched with pack details.
+        Fetch all stash entries (yarn and fiber) for the configured user, enriched with pack details.
         """
         import os
         import json
@@ -122,21 +122,84 @@ class Model(Base):
         from .db import DBManager
         
         username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
-        endpoint = f"people/{username}/stash/list.json"
+        endpoint = f"people/{username}/stash/unified/list.json"
         
-        all_stashes = []
-        page = 1
-        while True:
-            result = self.REQ.get_request(
-                endpoint=endpoint, 
-                params={"page_size": 100, "page": page}
-            )
-            if not result or "stash" not in result or not result["stash"]:
-                break
-            all_stashes.extend(result["stash"])
-            if len(result["stash"]) < 100:
-                break
-            page += 1
+        r = self.get_redis()
+        all_stashes = None
+        if r:
+            try:
+                cached_list = r.get(f"stash_list:{username}")
+                if cached_list:
+                    all_stashes = json.loads(cached_list)
+            except Exception as e:
+                self.LOGGER.error(f"Redis get stash_list failed: {e}")
+
+        if all_stashes is None:
+            all_stashes = []
+            page = 1
+            while True:
+                result = self.REQ.get_request(
+                    endpoint=endpoint, 
+                    params={"page_size": 100, "page": page}
+                )
+                if not result or "unified_stash" not in result or not result["unified_stash"]:
+                    break
+                
+                # Parse unified stash items
+                for item in result["unified_stash"]:
+                    if "stash" in item:
+                        s = item["stash"]
+                        s["type"] = "yarn"
+                        all_stashes.append(s)
+                    elif "fiber_stash" in item:
+                        fs = item["fiber_stash"]
+                        fs["type"] = "fiber"
+                        
+                        # Map fiber company to yarn company structure
+                        fs["yarn"] = {
+                            "yarn_company_name": fs.get("fiber_company_name") or "Unknown Fiber Brand",
+                            "first_photo": fs.get("first_photo"),
+                            "photos": [fs.get("first_photo")] if fs.get("first_photo") else [],
+                        }
+                        
+                        # Map fiber packs to yarn packs
+                        fiber_packs = fs.get("fiber_packs") or []
+                        packs = []
+                        for fp in fiber_packs:
+                            weight_grams = fp.get("total_grams") or fp.get("grams") or 0.0
+                            if not weight_grams and fp.get("total_ounces"):
+                                weight_grams = float(fp["total_ounces"]) * 28.3495
+                            packs.append({
+                                "id": fp.get("id"),
+                                "skeins": 1.0,
+                                "total_grams": weight_grams,
+                                "grams_per_skein": weight_grams,
+                                "total_yards": fp.get("total_yards") or 0.0,
+                                "total_meters": fp.get("total_meters") or 0.0,
+                            })
+                        if not packs:
+                            weight_grams = fs.get("total_grams") or fs.get("grams") or 0.0
+                            if not weight_grams and fs.get("total_ounces"):
+                                weight_grams = float(fs["total_ounces"]) * 28.3495
+                            packs.append({
+                                "id": fs.get("id"),
+                                "skeins": 1.0,
+                                "total_grams": weight_grams,
+                                "grams_per_skein": weight_grams,
+                                "total_yards": fs.get("total_yards") or 0.0,
+                                "total_meters": fs.get("total_meters") or 0.0,
+                            })
+                        fs["packs"] = packs
+                        all_stashes.append(fs)
+                        
+                if len(result["unified_stash"]) < 100:
+                    break
+                page += 1
+            if all_stashes and r:
+                try:
+                    r.setex(f"stash_list:{username}", 300, json.dumps(all_stashes))
+                except Exception as e:
+                    self.LOGGER.error(f"Redis set stash_list failed: {e}")
             
         if not all_stashes:
             return None
@@ -167,7 +230,7 @@ class Model(Base):
                     cached_data = json.loads(cached_val)
                     if cached_data.get("updated_at") == updated_at:
                         s["packs"] = cached_data.get("packs") or []
-                        # Retrieve history and original_values from PostgreSQL
+                        # Retrieve history and original_values from SQLite
                         s["history"] = DBManager.get_stash_history(stash_id) or []
                         s["original_values"] = DBManager.get_original_values(stash_id)
                         continue
@@ -180,14 +243,21 @@ class Model(Base):
             def fetch_detail(item):
                 import time
                 s_id = item.get("id")
+                is_fiber = item.get("type") == "fiber"
                 if not s_id:
                     return None, None
                 time.sleep(0.2)  # rate limit compliance
-                detail_endpoint = f"people/{username}/stash/{s_id}.json"
+                if is_fiber:
+                    detail_endpoint = f"people/{username}/fiber/{s_id}.json"
+                else:
+                    detail_endpoint = f"people/{username}/stash/{s_id}.json"
                 try:
                     res = self.REQ.get_request(detail_endpoint)
-                    if res and "stash" in res:
-                        return s_id, res["stash"]
+                    if res:
+                        if is_fiber and "fiber_stash" in res:
+                            return s_id, res["fiber_stash"]
+                        elif not is_fiber and "stash" in res:
+                            return s_id, res["stash"]
                 except Exception as e:
                     self.LOGGER.error(f"Error fetching stash detail {s_id}: {e}")
                 return s_id, None
@@ -199,8 +269,51 @@ class Model(Base):
             for s_id, stash_detail in results:
                 if stash_detail:
                     s_id_str = str(s_id)
-                    new_packs = stash_detail.get("packs") or []
-                    yarn_info = stash_detail.get("yarn") or {}
+                    
+                    item_in_list = None
+                    for item in all_stashes:
+                        if str(item.get("id")) == s_id_str:
+                            item_in_list = item
+                            break
+                            
+                    is_fiber = item_in_list.get("type") == "fiber" if item_in_list else False
+                    
+                    if is_fiber:
+                        new_packs = []
+                        fiber_packs = stash_detail.get("fiber_packs") or []
+                        for fp in fiber_packs:
+                            weight_grams = fp.get("total_grams") or fp.get("grams") or 0.0
+                            if not weight_grams and fp.get("total_ounces"):
+                                weight_grams = float(fp["total_ounces"]) * 28.3495
+                            new_packs.append({
+                                "id": fp.get("id"),
+                                "skeins": 1.0,
+                                "total_grams": weight_grams,
+                                "grams_per_skein": weight_grams,
+                                "total_yards": fp.get("total_yards") or 0.0,
+                                "total_meters": fp.get("total_meters") or 0.0,
+                            })
+                        if not new_packs:
+                            weight_grams = stash_detail.get("total_grams") or stash_detail.get("grams") or 0.0
+                            if not weight_grams and stash_detail.get("total_ounces"):
+                                weight_grams = float(stash_detail["total_ounces"]) * 28.3495
+                            new_packs.append({
+                                "id": stash_detail.get("id"),
+                                "skeins": 1.0,
+                                "total_grams": weight_grams,
+                                "grams_per_skein": weight_grams,
+                                "total_yards": stash_detail.get("total_yards") or 0.0,
+                                "total_meters": stash_detail.get("total_meters") or 0.0,
+                            })
+                        yarn_info = {
+                            "yarn_company_name": stash_detail.get("fiber_company_name") or "Unknown Fiber Brand",
+                            "first_photo": stash_detail.get("first_photo"),
+                            "photos": [stash_detail.get("first_photo")] if stash_detail.get("first_photo") else [],
+                        }
+                    else:
+                        new_packs = stash_detail.get("packs") or []
+                        yarn_info = stash_detail.get("yarn") or {}
+                        
                     new_totals = get_primary_totals(new_packs, yarn_info)
                     
                     old_totals = DBManager.get_original_values(s_id_str)
@@ -215,8 +328,12 @@ class Model(Base):
                         
                         # Only record a history event when pack totals actually changed
                         if any(val != 0.0 for val in delta.values()):
-                            up_date_str = stash_detail.get("updated_at") or ""
-                            date_part = up_date_str.split(" ")[0].replace("/", "-") if up_date_str else ""
+                            pending_date = DBManager.pop_pending_usage_date(s_id_str)
+                            if pending_date:
+                                date_part = pending_date
+                            else:
+                                up_date_str = stash_detail.get("updated_at") or ""
+                                date_part = up_date_str.split(" ")[0].replace("/", "-") if up_date_str else ""
                             DBManager.save_history_event(
                                 stash_id=s_id_str,
                                 event_date=date_part,
@@ -265,7 +382,16 @@ class Model(Base):
         import os
         username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/create.json"
-        return self.REQ.post_request(endpoint=endpoint, data=stash_data)
+        result = self.REQ.post_request(endpoint=endpoint, data=stash_data)
+        
+        r = self.get_redis()
+        if r:
+            try:
+                r.delete(f"stash_list:{username}")
+            except Exception as e:
+                self.LOGGER.error(f"Cache invalidation failed for stash_list:{username} in Redis: {e}")
+                
+        return result
 
     def update_stash(self, stash_id: Union[str, int], stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Update a stash entry via PUT and invalidate local cache for that entry."""
@@ -280,6 +406,7 @@ class Model(Base):
         if r:
             try:
                 r.delete(f"stash_detail:{stash_id}")
+                r.delete(f"stash_list:{username}")
             except Exception as e:
                 self.LOGGER.error(f"Cache invalidation failed for stash {stash_id} in Redis: {e}")
 
@@ -292,13 +419,39 @@ class Model(Base):
             - yarn_id (str | int): Ravelry numeric yarn ID.
         - output: Fully populated Yarn object with colorways, or None on failure.
         """
+        import json
         try:
+            r = self.get_redis()
+            if r:
+                try:
+                    cached = r.get(f"yarn:{yarn_id}")
+                    if cached:
+                        data = json.loads(cached)
+                        yarn = Yarn(**data['yarn'])
+                        yarn.colorways = data['colorways']
+                        return yarn
+                except Exception as e:
+                    self.LOGGER.error(f"Redis get/reconstruct yarn failed: {e}")
+
             result = self.REQ.get_request(
                 endpoint=f"yarns/{yarn_id}.json", params={'include': 'colorways'}
             )
             if result is not None:
                 yarn = Yarn(**result['yarn'])
                 yarn.colorways = result['colorways']
+
+                if r:
+                    try:
+                        r.setex(
+                            f"yarn:{yarn_id}",
+                            86400,
+                            json.dumps({
+                                "yarn": result['yarn'],
+                                "colorways": result['colorways']
+                            })
+                        )
+                    except Exception as e:
+                        self.LOGGER.error(f"Redis set yarn failed: {e}")
 
                 return yarn
 
@@ -314,8 +467,22 @@ class Model(Base):
         - output: Dict mapping project ID (int) to pandas.Timestamp.
         """
         import os
+        import json
         import pandas as pd
         username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        
+        r = self.get_redis()
+        if r:
+            try:
+                cached = r.get(f"proj_map:{username}")
+                if cached:
+                    raw_map = json.loads(cached)
+                    proj_map = {}
+                    for k, v in raw_map.items():
+                        proj_map[int(k)] = pd.Timestamp(v)
+                    return proj_map
+            except Exception as e:
+                self.LOGGER.error(f"Redis get proj_map failed: {e}")
         proj_map = {}
         try:
             proj_resp = self.REQ.get_request(f"people/{username}/projects/list.json", params={"page_size": 100})
@@ -329,6 +496,12 @@ class Model(Base):
                             proj_map[p_id] = pd.to_datetime(date_part)
                         except Exception:
                             pass
+            if proj_map and r:
+                try:
+                    serialized = {str(k): v.isoformat() for k, v in proj_map.items()}
+                    r.setex(f"proj_map:{username}", 600, json.dumps(serialized))
+                except Exception as e:
+                    self.LOGGER.error(f"Redis set proj_map failed: {e}")
         except Exception as e:
             self.LOGGER.error(f"Error fetching projects for stash subtraction: {e}")
         return proj_map
@@ -477,3 +650,134 @@ class Model(Base):
         df["cumulative_grams"] = df["grams"].cumsum()
 
         return df
+
+    def get_projects_list(self) -> Optional[List[Dict[str, Any]]]:
+        """Fetch project list for the configured user."""
+        import os
+        import json
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        r = self.get_redis()
+        cache_key = f"projects_list:{username}"
+        if r:
+            try:
+                cached = r.get(cache_key)
+                if cached:
+                    return json.loads(cached)
+            except Exception as e:
+                self.LOGGER.error(f"Redis get projects_list failed: {e}")
+
+        try:
+            resp = self.REQ.get_request(f"people/{username}/projects/list.json", params={"page_size": 100})
+            if resp and "projects" in resp:
+                projects = resp["projects"]
+                if r:
+                    try:
+                        r.setex(cache_key, 600, json.dumps(projects))
+                    except Exception as e:
+                        self.LOGGER.error(f"Redis set projects_list failed: {e}")
+                return projects
+        except Exception as e:
+            self.LOGGER.error(f"Error fetching projects list: {e}")
+        return None
+
+    def get_queue_list(self) -> Optional[List[Dict[str, Any]]]:
+        """Fetch queued projects for the configured user."""
+        import os
+        import json
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        r = self.get_redis()
+        cache_key = f"queue_list:{username}"
+        if r:
+            try:
+                cached = r.get(cache_key)
+                if cached:
+                    return json.loads(cached)
+            except Exception as e:
+                self.LOGGER.error(f"Redis get queue_list failed: {e}")
+
+        try:
+            resp = self.REQ.get_request(f"people/{username}/queue/list.json", params={"page_size": 100})
+            if resp and "queued_projects" in resp:
+                queue = resp["queued_projects"]
+                if r:
+                    try:
+                        r.setex(cache_key, 600, json.dumps(queue))
+                    except Exception as e:
+                        self.LOGGER.error(f"Redis set queue_list failed: {e}")
+                return queue
+        except Exception as e:
+            self.LOGGER.error(f"Error fetching queue list: {e}")
+        return None
+
+    def get_needles_list(self) -> Optional[List[Dict[str, Any]]]:
+        """Fetch owned needles/hooks for the configured user."""
+        import os
+        import json
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        r = self.get_redis()
+        cache_key = f"needles_list:{username}"
+        if r:
+            try:
+                cached = r.get(cache_key)
+                if cached:
+                    return json.loads(cached)
+            except Exception as e:
+                self.LOGGER.error(f"Redis get needles_list failed: {e}")
+
+        try:
+            resp = self.REQ.get_request(f"people/{username}/needles/list.json")
+            if resp and "needle_records" in resp:
+                needles = resp["needle_records"]
+                if r:
+                    try:
+                        r.setex(cache_key, 3600, json.dumps(needles))
+                    except Exception as e:
+                        self.LOGGER.error(f"Redis set needles_list failed: {e}")
+                return needles
+        except Exception as e:
+            self.LOGGER.error(f"Error fetching needles list: {e}")
+        return None
+
+    def reposition_queue_item(self, queue_id: Union[str, int], new_position: int) -> bool:
+        """Reposition a queued project and invalidate queue cache."""
+        import os
+        import json
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        endpoint = f"people/{username}/queue/{queue_id}/reposition.json"
+        
+        try:
+            result = self.REQ.post_request(endpoint, data={"insert_at": new_position})
+            if result:
+                # Invalidate queue cache
+                r = self.get_redis()
+                if r:
+                    try:
+                        r.delete(f"queue_list:{username}")
+                    except Exception as e:
+                        self.LOGGER.error(f"Redis delete queue_list failed: {e}")
+                return True
+        except Exception as e:
+            self.LOGGER.error(f"Error repositioning queue item {queue_id}: {e}")
+        return False
+
+    def remove_queue_item(self, queue_id: Union[str, int]) -> bool:
+        """Delete a queued project and invalidate queue cache."""
+        import os
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        endpoint = f"people/{username}/queue/{queue_id}.json"
+        
+        try:
+            result = self.REQ.delete_request(endpoint)
+            # Ravelry returns empty dict or standard response on delete.
+            # Even if result is empty dict, it succeeded if no HTTPError was raised.
+            # Invalidate queue cache
+            r = self.get_redis()
+            if r:
+                try:
+                    r.delete(f"queue_list:{username}")
+                except Exception as e:
+                    self.LOGGER.error(f"Redis delete queue_list failed: {e}")
+            return True
+        except Exception as e:
+            self.LOGGER.error(f"Error deleting queue item {queue_id}: {e}")
+        return False
