@@ -46,12 +46,14 @@ stashies.db.DBManager = MockDBManager
 sys.modules['redis'] = MagicMock()
 
 
+import sys
+
 @pytest.fixture(scope="module")
 def dash_server():
     # Start the app server in a background subprocess
     # Dash will use the default port 8050
     proc = subprocess.Popen(
-        [".venv/bin/python", "app.py"],
+        [sys.executable, "app.py"],
         env={**os.environ, "API_USERNAME": "test_user", "API_KEY": "test_key", "RAVELRY_USERNAME": "test_user"}
     )
     # Wait for Dash app to launch
@@ -306,6 +308,61 @@ def test_model_stash_history_and_deltas():
     res2 = _get_primary_totals(packs, yarn_info)
     assert res2["yards"] == 400.0
     assert res2["skeins"] == 2.0
+
+
+def test_yarn_multiple_photos_validation():
+    from stashies.dataclasses import Yarn
+    raw_yarn = {
+        "id": 123,
+        "name": "Super Wool",
+        "company": "Cave Company",
+        "discontinued": False,
+        "grams": 100,
+        "yardage": 220,
+        "machine_washable": True,
+        "photos": [
+            {"medium_url": "https://placehold.co/150"},
+            {"medium_url": "https://placehold.co/250"}
+        ]
+    }
+    y = Yarn(**raw_yarn)
+    assert len(y.photos) == 2
+    assert str(y.photos[0].medium) == "https://placehold.co/150"
+    assert str(y.photos[1].medium) == "https://placehold.co/250"
+
+
+def test_stash_card_carousel_rendering():
+    from stashies.components.stash_card import StashCard
+    import dash_bootstrap_components as dbc
+    card = StashCard(container_id="test-card")
+    s = {
+        "id": 101,
+        "name": "Super Wool",
+        "yarn": {
+            "yarn_company_name": "Cave Company",
+            "photos": [
+                {"medium_url": "https://placehold.co/150"},
+                {"medium_url": "https://placehold.co/250"}
+            ]
+        },
+        "stash_status": {"id": 1, "name": "In stash"}
+    }
+    totals = {"yards": 100, "meters": 91, "skeins": 1, "grams": 100}
+    res = card.create_card(s, totals)
+    
+    # Store at res.children[0], Card at res.children[1]
+    dbc_card = res.children[1]
+    card_content = dbc_card.children[0]
+    
+    # Check that it rendered a Carousel because there are 2 photos
+    # card_content is a Row because photos exist.
+    # The first column in the Row should contain the carousel.
+    img_col = card_content.children[0]
+    carousel = img_col.children
+    assert isinstance(carousel, dbc.Carousel)
+    assert len(carousel.items) == 2
+    assert carousel.items[0]["src"] == "https://placehold.co/150"
+
 
 
 

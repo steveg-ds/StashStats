@@ -36,7 +36,7 @@ class SearchResults(BaseComponent):
         discontinued: Optional[bool],
         machine_washable: Optional[bool],
         colorways: Optional[List[str]],
-        photo: HttpUrl,
+        photos: List[HttpUrl],
     ) -> dbc.AccordionItem:
         """
         Build a single accordion item displaying yarn details and an inline stash form.
@@ -183,20 +183,39 @@ class SearchResults(BaseComponent):
             md=8,
         )
 
+        if photos and len(photos) > 1:
+            carousel_items = [{"key": str(i), "src": str(url)} for i, url in enumerate(photos)]
+            img_element = dbc.Carousel(
+                items=carousel_items,
+                controls=True,
+                indicators=True,
+                interval=None,
+                style={
+                    'height': '150px',
+                    'width': '150px',
+                    'margin': '10px',
+                    'borderRadius': '8px',
+                    'overflow': 'hidden',
+                }
+            )
+        elif photos:
+            img_element = html.Img(
+                src=str(photos[0]),
+                style={
+                    'height': '150px',
+                    'width': 'auto',
+                    'margin': '10px',
+                    'borderRadius': '8px',
+                },
+            )
+        else:
+            img_element = None
+
         thumbnail = dbc.Col(
-            [
-                html.Img(
-                    src=str(photo),
-                    style={
-                        'height': '150px',
-                        'width': 'auto',
-                        'margin': '10px',
-                        'borderRadius': '8px',
-                    },
-                ),
-            ],
+            [img_element] if img_element is not None else [],
             xs=12,
             md=4,
+            className="d-flex align-items-center justify-content-center"
         )
 
         return dbc.AccordionItem(

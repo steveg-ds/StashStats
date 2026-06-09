@@ -52,9 +52,9 @@ class Yarn(BaseModel):
     colorways: Optional[List[str]] = Field(default=None, init=False)
     '''Sorted, deduplicated list of colorway names; populated from colorways detail endpoint.'''
 
-    photos: 'YarnPhotos' = Field(
-        default_factory=YarnPhotos,
-        validation_alias=AliasChoices('first_photo', 'photos'),
+    photos: List[YarnPhotos] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices('photos', 'first_photo'),
     )
     '''Container for yarn photo URLs with multiple size variants.
     '''
@@ -76,18 +76,20 @@ class Yarn(BaseModel):
     @field_validator('photos', mode='before')
     def convert_photo_list(
         cls, v: Union[List[Dict[str, Any]], Dict[str, Any], None]
-    ) -> 'YarnPhotos':
+    ) -> List[YarnPhotos]:
         """
-        Normalise photo data from API into a YarnPhotos instance. Always uses first photo in a list.
+        Normalise photo data from API into a list of YarnPhotos instances.
         - Input
             - v: List of photo dicts, single photo dict, or None.
-        - output: YarnPhotos instance (placeholder URLs if input empty).
+        - output: List of YarnPhotos instances.
         """
         if not v:
-            return YarnPhotos()
+            return []
         if isinstance(v, list):
-            v = v[0]  # always use first photo for consistency
-        return YarnPhotos(**v)
+            return [YarnPhotos(**photo) for photo in v]
+        if isinstance(v, dict):
+            return [YarnPhotos(**v)]
+        return []
 
     @field_validator('company', mode='before')
     def get_company_name(cls, v: Union[Dict[str, Any], str]) -> str:
