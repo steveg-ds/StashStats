@@ -1,6 +1,7 @@
 """Dash component for rendering yarn search results as an accordion with inline stash-add forms."""
+import datetime
 import dash_bootstrap_components as dbc
-from dash import html
+from dash import html, dcc
 from pydantic.dataclasses import dataclass
 from pydantic import Field, HttpUrl
 from typing import Dict, Any, Optional, List
@@ -162,6 +163,24 @@ class SearchResults(BaseComponent):
                             xs=12,
                             sm=6,
                         ),
+                    ],
+                    className="mb-3",
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                dbc.Label("Date Added"),
+                                html.Br(),
+                                dcc.DatePickerSingle(
+                                    id={"type": "stash-date-added", "index": id},
+                                    date=datetime.date.today().isoformat(),
+                                    display_format="YYYY-MM-DD",
+                                    className="w-100"
+                                ),
+                            ],
+                            xs=12,
+                        )
                     ],
                     className="mb-3",
                 ),

@@ -63,13 +63,14 @@ def handle_search(n_clicks, query, sort, category):
     State({"type": "stash-dyelot", "index": MATCH}, "value"),
     State({"type": "stash-location", "index": MATCH}, "value"),
     State({"type": "stash-notes", "index": MATCH}, "value"),
+    State({"type": "stash-date-added", "index": MATCH}, "date"),
     State({"type": "stash-submit-btn", "index": MATCH}, "id"),
 )
-def handle_add_to_stash(n_clicks, skeins, colorway, dyelot, location, notes, button_id):
+def handle_add_to_stash(n_clicks, skeins, colorway, dyelot, location, notes, date_added, button_id):
     if n_clicks is None or not n_clicks:
         raise PreventUpdate
     yarn_id = button_id["index"]
-    return CONTROLLER.handle_add_to_stash(yarn_id, skeins, colorway, dyelot, location, notes)
+    return CONTROLLER.handle_add_to_stash(yarn_id, skeins, colorway, dyelot, location, notes, date_added)
 
 
 @callback(
@@ -124,6 +125,7 @@ def filter_stash_items(query, tab_value):
     Output("edit-stash-status-msg", "children"),
     Output("edit-stash-used-skeins", "value"),
     Output("edit-stash-modal-tabs", "active_tab"),
+    Output("edit-stash-usage-date", "date"),
     Input({"type": "stash-edit-btn", "index": ALL}, "n_clicks"),
     Input("edit-stash-cancel-btn", "n_clicks"),
     State({"type": "stash-data-store", "index": ALL}, "data"),
@@ -162,16 +164,17 @@ def update_remaining_preview(used, current_skeins):
     State("edit-stash-status", "value"),
     State("edit-stash-used-skeins", "value"),
     State("edit-stash-current-skeins-store", "data"),
+    State("edit-stash-usage-date", "date"),
     prevent_initial_call=True,
 )
 def save_stash_edit(n_clicks, stash_id, active_tab,
                     colorway, dyelot, location, notes, skeins, status_id,
-                    used_skeins, current_skeins):
+                    used_skeins, current_skeins, usage_date):
     if not n_clicks or not stash_id:
         raise PreventUpdate
     return CONTROLLER.handle_save_edit(
         stash_id, active_tab, colorway, dyelot, location, notes,
-        skeins, status_id, used_skeins, current_skeins
+        skeins, status_id, used_skeins, current_skeins, usage_date
     )
 
 

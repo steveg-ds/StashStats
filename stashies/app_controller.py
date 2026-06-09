@@ -1,4 +1,5 @@
 """MVC Controller layer for StashStats. Wires together the Model and UI components, orchestrating search and stash interactions."""
+import datetime
 from typing import Any, Dict, List, Tuple, Union, Optional
 
 import dash_bootstrap_components as dbc
@@ -168,7 +169,8 @@ class AppController(Base):
             id="stash-search-query",
             placeholder="Filter stash by yarn name, brand, or colorway...",
             className="mb-4 mt-3",
-            style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #444"}
+            style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #444"},
+            debounce=True
         )
         return html.Div(
             [
@@ -219,7 +221,10 @@ class AppController(Base):
         Render basic structural layout for analytics tab content.
         - output: dbc.Row container from AnalyticsComponent.
         """
-        return self.ANALYTICS.create_init_layout()
+        layout = self.ANALYTICS.create_init_layout("yards")
+        content = self.render_analytics_content("yards")
+        layout.children[0].children[3].children = content
+        return layout
 
     def render_analytics_content(self, selected_metric: str) -> html.Div:
         """
@@ -319,7 +324,8 @@ class AppController(Base):
         colorway: Optional[str],
         dyelot: Optional[str],
         location: Optional[str],
-        notes: Optional[str]
+        notes: Optional[str],
+        date_added: Optional[str] = None
     ) -> str:
         """
         Structure payload and execute stash addition API.
@@ -330,6 +336,7 @@ class AppController(Base):
             - dyelot (str | None): Dyelot code.
             - location (str | None): Physical location.
             - notes (str | None): Stash notes.
+            - date_added (str | None): Date stash was added.
         - output: Text response explaining API result.
         """
         stash_payload = {
@@ -346,6 +353,10 @@ class AppController(Base):
             stash_payload["notes"] = notes
         if skeins is not None and skeins != "":
             stash_payload["pack"] = {"skeins": float(skeins)}
+            if date_added:
+                stash_payload["pack"]["purchased_date"] = date_added
+        elif date_added:
+            stash_payload["pack"] = {"purchased_date": date_added}
             
         try:
             response = self.MODEL.create_stash(stash_payload)
@@ -369,6 +380,7 @@ class AppController(Base):
         status_id: Optional[int],
         used_skeins: Optional[float],
         current_skeins: Optional[float],
+        usage_date: Optional[str] = None,
     ) -> Tuple[str, bool]:
         """
         Process the updates and save changes via model.
@@ -383,6 +395,7 @@ class AppController(Base):
             - status_id (int | None): Selected stash status.
             - used_skeins (float | None): Count of used skeins (usage log).
             - current_skeins (float | None): Stashed skeins baseline.
+            - usage_date (str | None): Date yarn was used.
         - output: Tuple of status message and modal visibility boolean.
         """
         if active_tab == "modal-tab-usage":
@@ -394,6 +407,9 @@ class AppController(Base):
                 return "Amount used can't be negative.", True
             remaining = max(0.0, current - used_f)
             payload = {"pack": {"skeins": remaining}}
+            if usage_date:
+                from .db import DBManager
+                DBManager.set_pending_usage_date(stash_id, usage_date)
             try:
                 result = self.MODEL.update_stash(stash_id, payload)
                 if result and "stash" in result:
@@ -436,7 +452,7 @@ class AppController(Base):
         store_data_list: list,
         btn_ids: list,
         triggered_id: str,
-    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str]:
+    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str]:
         """
         Handle opening the edit modal and loading the correct initial state.
         - Input
@@ -451,13 +467,13 @@ class AppController(Base):
         from dash import no_update
         
         if "edit-stash-cancel-btn" in triggered_id:
-            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details"
+            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
 
         try:
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
         except Exception:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details"
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
 
         sd = None
         for i, btn_id in enumerate(btn_ids or []):
@@ -466,7 +482,7 @@ class AppController(Base):
                 break
 
         if not sd:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details"
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
 
         current_skeins = sd.get("skeins") or 0
         return (
@@ -482,4 +498,5 @@ class AppController(Base):
             "",
             None,
             "modal-tab-details",
+            datetime.date.today().isoformat(),
         )

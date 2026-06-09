@@ -9,7 +9,7 @@ import sys
 # Set default env vars for tests to pass Pydantic settings checks
 os.environ.setdefault("API_USERNAME", "test_user")
 os.environ.setdefault("API_KEY", "test_key")
-os.environ.setdefault("USERNAME", "test_user")
+os.environ.setdefault("RAVELRY_USERNAME", "test_user")
 
 # Mock DBManager & Redis globally in test runner
 class MockDBManager:
@@ -51,8 +51,8 @@ def dash_server():
     # Start the app server in a background subprocess
     # Dash will use the default port 8050
     proc = subprocess.Popen(
-        [".venv/bin/python", "app.py"],
-        env={**os.environ, "API_USERNAME": "test_user", "API_KEY": "test_key", "USERNAME": "test_user"}
+        [sys.executable, "app.py"],
+        env={**os.environ, "API_USERNAME": "test_user", "API_KEY": "test_key", "RAVELRY_USERNAME": "test_user"}
     )
     # Wait for Dash app to launch
     time.sleep(3)

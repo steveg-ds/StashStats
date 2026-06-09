@@ -121,22 +121,38 @@ class Model(Base):
         import concurrent.futures
         from .db import DBManager
         
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME", "KMLadyBugCrotchets")
         endpoint = f"people/{username}/stash/list.json"
         
-        all_stashes = []
-        page = 1
-        while True:
-            result = self.REQ.get_request(
-                endpoint=endpoint, 
-                params={"page_size": 100, "page": page}
-            )
-            if not result or "stash" not in result or not result["stash"]:
-                break
-            all_stashes.extend(result["stash"])
-            if len(result["stash"]) < 100:
-                break
-            page += 1
+        r = self.get_redis()
+        all_stashes = None
+        if r:
+            try:
+                cached_list = r.get(f"stash_list:{username}")
+                if cached_list:
+                    all_stashes = json.loads(cached_list)
+            except Exception as e:
+                self.LOGGER.error(f"Redis get stash_list failed: {e}")
+
+        if all_stashes is None:
+            all_stashes = []
+            page = 1
+            while True:
+                result = self.REQ.get_request(
+                    endpoint=endpoint, 
+                    params={"page_size": 100, "page": page}
+                )
+                if not result or "stash" not in result or not result["stash"]:
+                    break
+                all_stashes.extend(result["stash"])
+                if len(result["stash"]) < 100:
+                    break
+                page += 1
+            if all_stashes and r:
+                try:
+                    r.setex(f"stash_list:{username}", 300, json.dumps(all_stashes))
+                except Exception as e:
+                    self.LOGGER.error(f"Redis set stash_list failed: {e}")
             
         if not all_stashes:
             return None
@@ -215,8 +231,12 @@ class Model(Base):
                         
                         # Only record a history event when pack totals actually changed
                         if any(val != 0.0 for val in delta.values()):
-                            up_date_str = stash_detail.get("updated_at") or ""
-                            date_part = up_date_str.split(" ")[0].replace("/", "-") if up_date_str else ""
+                            pending_date = DBManager.pop_pending_usage_date(s_id_str)
+                            if pending_date:
+                                date_part = pending_date
+                            else:
+                                up_date_str = stash_detail.get("updated_at") or ""
+                                date_part = up_date_str.split(" ")[0].replace("/", "-") if up_date_str else ""
                             DBManager.save_history_event(
                                 stash_id=s_id_str,
                                 event_date=date_part,
@@ -263,15 +283,24 @@ class Model(Base):
         Post a new stash entry to the user's Ravelry stash.
         """
         import os
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME", "KMLadyBugCrotchets")
         endpoint = f"people/{username}/stash/create.json"
-        return self.REQ.post_request(endpoint=endpoint, data=stash_data)
+        result = self.REQ.post_request(endpoint=endpoint, data=stash_data)
+        
+        r = self.get_redis()
+        if r:
+            try:
+                r.delete(f"stash_list:{username}")
+            except Exception as e:
+                self.LOGGER.error(f"Cache invalidation failed for stash_list:{username} in Redis: {e}")
+                
+        return result
 
     def update_stash(self, stash_id: Union[str, int], stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Update a stash entry via PUT and invalidate local cache for that entry."""
         import os
 
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME", "KMLadyBugCrotchets")
         endpoint = f"people/{username}/stash/{stash_id}.json"
         result = self.REQ.put_request(endpoint=endpoint, data=stash_data)
 
@@ -280,6 +309,7 @@ class Model(Base):
         if r:
             try:
                 r.delete(f"stash_detail:{stash_id}")
+                r.delete(f"stash_list:{username}")
             except Exception as e:
                 self.LOGGER.error(f"Cache invalidation failed for stash {stash_id} in Redis: {e}")
 
@@ -292,13 +322,39 @@ class Model(Base):
             - yarn_id (str | int): Ravelry numeric yarn ID.
         - output: Fully populated Yarn object with colorways, or None on failure.
         """
+        import json
         try:
+            r = self.get_redis()
+            if r:
+                try:
+                    cached = r.get(f"yarn:{yarn_id}")
+                    if cached:
+                        data = json.loads(cached)
+                        yarn = Yarn(**data['yarn'])
+                        yarn.colorways = data['colorways']
+                        return yarn
+                except Exception as e:
+                    self.LOGGER.error(f"Redis get/reconstruct yarn failed: {e}")
+
             result = self.REQ.get_request(
                 endpoint=f"yarns/{yarn_id}.json", params={'include': 'colorways'}
             )
             if result is not None:
                 yarn = Yarn(**result['yarn'])
                 yarn.colorways = result['colorways']
+
+                if r:
+                    try:
+                        r.setex(
+                            f"yarn:{yarn_id}",
+                            86400,
+                            json.dumps({
+                                "yarn": result['yarn'],
+                                "colorways": result['colorways']
+                            })
+                        )
+                    except Exception as e:
+                        self.LOGGER.error(f"Redis set yarn failed: {e}")
 
                 return yarn
 
@@ -314,8 +370,23 @@ class Model(Base):
         - output: Dict mapping project ID (int) to pandas.Timestamp.
         """
         import os
+        import json
         import pandas as pd
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME", "KMLadyBugCrotchets")
+        
+        r = self.get_redis()
+        if r:
+            try:
+                cached = r.get(f"proj_map:{username}")
+                if cached:
+                    raw_map = json.loads(cached)
+                    proj_map = {}
+                    for k, v in raw_map.items():
+                        proj_map[int(k)] = pd.Timestamp(v)
+                    return proj_map
+            except Exception as e:
+                self.LOGGER.error(f"Redis get proj_map failed: {e}")
+
         proj_map = {}
         try:
             proj_resp = self.REQ.get_request(f"people/{username}/projects/list.json", params={"page_size": 100})
@@ -329,6 +400,12 @@ class Model(Base):
                             proj_map[p_id] = pd.to_datetime(date_part)
                         except Exception:
                             pass
+            if proj_map and r:
+                try:
+                    serialized = {str(k): v.isoformat() for k, v in proj_map.items()}
+                    r.setex(f"proj_map:{username}", 600, json.dumps(serialized))
+                except Exception as e:
+                    self.LOGGER.error(f"Redis set proj_map failed: {e}")
         except Exception as e:
             self.LOGGER.error(f"Error fetching projects for stash subtraction: {e}")
         return proj_map
