@@ -139,7 +139,11 @@ class AppController(Base):
                 if not full_yarn:
                     full_yarn = y
                 
-                photo_url = full_yarn.photos.medium
+                if full_yarn.photos:
+                    photo_urls = [p.medium for p in full_yarn.photos]
+                else:
+                    from .dataclasses import YarnPhotos
+                    photo_urls = [YarnPhotos().medium]
                 
                 item = self.SEARCH_RESULTS.create_search_result(
                     id=full_yarn.id,
@@ -150,7 +154,7 @@ class AppController(Base):
                     discontinued=full_yarn.discontinued,
                     machine_washable=full_yarn.machine_washable,
                     colorways=full_yarn.colorways,
-                    photo=photo_url,
+                    photos=photo_urls,
                 )
                 accordion_items.append(item)
                 

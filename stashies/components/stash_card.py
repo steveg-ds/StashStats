@@ -47,14 +47,40 @@ class StashCard(BaseComponent):
 
         badge_color = self.STASH_STATUS_COLORS.get(status_id, "success")
 
-        photo_url = None
-        photos = yarn_info.get("photos") or []
-        if photos and len(photos) > 0:
-            photo_url = photos[0].get("medium_url") or photos[0].get("square_url")
-        elif yarn_info.get("first_photo"):
-            photo_url = yarn_info.get("first_photo", {}).get("medium_url") or yarn_info.get("first_photo", {}).get("square_url")
+        # Get photos from stash item first, then fallback to yarn photos
+        photos = s.get("photos")
+        if not photos:
+            photos = yarn_info.get("photos") or []
+            if not photos and yarn_info.get("first_photo"):
+                photos = [yarn_info.get("first_photo")]
 
-        img_element = html.Img(src=photo_url, style={"height": "120px", "objectFit": "cover", "width": "100%", "borderRadius": "4px"}) if photo_url else None
+        photo_urls = []
+        for p in (photos or []):
+            url = p.get("medium_url") or p.get("square_url") or p.get("small_url") or p.get("thumbnail_url")
+            if url:
+                photo_urls.append(url)
+
+        if len(photo_urls) > 1:
+            carousel_items = [{"key": str(i), "src": str(url)} for i, url in enumerate(photo_urls)]
+            img_element = dbc.Carousel(
+                items=carousel_items,
+                controls=True,
+                indicators=True,
+                interval=None,
+                style={
+                    "height": "120px",
+                    "width": "120px",
+                    "borderRadius": "4px",
+                    "overflow": "hidden",
+                }
+            )
+        elif len(photo_urls) == 1:
+            img_element = html.Img(
+                src=photo_urls[0],
+                style={"height": "120px", "objectFit": "cover", "width": "100%", "borderRadius": "4px"}
+            )
+        else:
+            img_element = None
 
         y = totals.get("yards", 0.0)
         m = totals.get("meters", 0.0)
@@ -88,10 +114,10 @@ class StashCard(BaseComponent):
                 html.P(s.get("notes"), className="card-text small text-muted font-italic mt-2 mb-0")
             )
 
-        if photo_url:
+        if img_element is not None:
             card_content = dbc.Row(
                 [
-                    dbc.Col(img_element, xs=12, md=2, className="d-flex align-items-center p-3"),
+                    dbc.Col(img_element, xs=12, md=2, className="d-flex align-items-center justify-content-center p-3"),
                     dbc.Col(
                         dbc.CardBody(card_body_contents),
                         xs=12,
