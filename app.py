@@ -178,6 +178,104 @@ def save_stash_edit(n_clicks, stash_id, active_tab,
     )
 
 
+@callback(
+    Output("projects-tab-content", "children"),
+    Input("app-tabs", "value"),
+)
+def render_projects_tab(tab_value):
+    if tab_value != "tab-projects":
+        return no_update
+    return CONTROLLER.render_projects_tab_layout()
+
+
+@callback(
+    Output("projects-list-container", "children"),
+    Input("projects-tab-content", "children"),
+    State("app-tabs", "value"),
+)
+def load_projects_list(tab_content, tab_value):
+    if tab_value != "tab-projects" or not tab_content:
+        raise PreventUpdate
+    return CONTROLLER.render_projects_list()
+
+
+@callback(
+    Output("queue-tab-content", "children"),
+    Input("app-tabs", "value"),
+)
+def render_queue_tab(tab_value):
+    if tab_value != "tab-queue":
+        return no_update
+    return CONTROLLER.render_queue_tab_layout()
+
+
+@callback(
+    Output("queue-list-container", "children"),
+    Input("queue-tab-content", "children"),
+    State("app-tabs", "value"),
+)
+def load_queue_list(tab_content, tab_value):
+    if tab_value != "tab-queue" or not tab_content:
+        raise PreventUpdate
+    return CONTROLLER.render_queue_list()
+
+
+@callback(
+    Output("needles-tab-content", "children"),
+    Input("app-tabs", "value"),
+)
+def render_needles_tab(tab_value):
+    if tab_value != "tab-needles":
+        return no_update
+    return CONTROLLER.render_needles_tab_layout()
+
+
+@callback(
+    Output("needles-list-container", "children"),
+    Input("needles-tab-content", "children"),
+    State("app-tabs", "value"),
+)
+def load_needles_list(tab_content, tab_value):
+    if tab_value != "tab-needles" or not tab_content:
+        raise PreventUpdate
+    return CONTROLLER.render_needles_list()
+
+
+@callback(
+    Output("queue-list-container", "children", allow_duplicate=True),
+    Input({"type": "queue-up-btn", "index": ALL}, "n_clicks"),
+    Input({"type": "queue-down-btn", "index": ALL}, "n_clicks"),
+    Input({"type": "queue-remove-btn", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def handle_queue_actions(up_clicks, down_clicks, remove_clicks):
+    ctx = callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    triggered_prop = ctx.triggered[0]["prop_id"]
+    try:
+        btn_id_str = triggered_prop.split(".")[0]
+        btn_id = json.loads(btn_id_str)
+        btn_type = btn_id["type"]
+        queue_id = btn_id["index"]
+    except Exception:
+        raise PreventUpdate
+        
+    n_clicks = ctx.triggered[0]["value"]
+    if not n_clicks:
+        raise PreventUpdate
+        
+    if btn_type == "queue-up-btn":
+        CONTROLLER.handle_reposition_queue(queue_id, "up")
+    elif btn_type == "queue-down-btn":
+        CONTROLLER.handle_reposition_queue(queue_id, "down")
+    elif btn_type == "queue-remove-btn":
+        CONTROLLER.handle_remove_queue(queue_id)
+        
+    return CONTROLLER.render_queue_list()
+
+
 if __name__ == "__main__":
     app.run(
         host="127.0.0.1",

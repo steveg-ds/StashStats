@@ -199,29 +199,35 @@ def test_stash_analytics_tab_thread(dash_thread_server):
     def mock_get(url, *args, **kwargs):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        if "stash/list.json" in url:
+        if "stash/unified/list.json" in url:
             mock_resp.json.return_value = {
-                "stash": [
+                "unified_stash": [
                     {
-                        "id": 101,
-                        "created_at": "2026/05/01 12:00:00 -0400",
-                        "updated_at": "2026/05/01 12:00:00 -0400",
-                        "yarn": {"yardage": 100},
-                        "packs": [{"skeins": 2}]
+                        "stash": {
+                            "id": 101,
+                            "created_at": "2026/05/01 12:00:00 -0400",
+                            "updated_at": "2026/05/01 12:00:00 -0400",
+                            "yarn": {"yardage": 100},
+                            "packs": [{"skeins": 2}]
+                        }
                     },
                     {
-                        "id": 102,
-                        "created_at": "2026/05/15 12:00:00 -0400",
-                        "updated_at": "2026/05/15 12:00:00 -0400",
-                        "yarn": {"yardage": 150},
-                        "packs": [{"skeins": 4}]
+                        "stash": {
+                            "id": 102,
+                            "created_at": "2026/05/15 12:00:00 -0400",
+                            "updated_at": "2026/05/15 12:00:00 -0400",
+                            "yarn": {"yardage": 150},
+                            "packs": [{"skeins": 4}]
+                        }
                     },
                     {
-                        "id": 103,
-                        "created_at": "2026/05/05 12:00:00 -0400",
-                        "updated_at": "2026/05/20 12:00:00 -0400",
-                        "yarn": {"yardage": 50},
-                        "packs": [{"skeins": 3}]
+                        "stash": {
+                            "id": 103,
+                            "created_at": "2026/05/05 12:00:00 -0400",
+                            "updated_at": "2026/05/20 12:00:00 -0400",
+                            "yarn": {"yardage": 50},
+                            "packs": [{"skeins": 3}]
+                        }
                     }
                 ]
             }
@@ -284,6 +290,137 @@ def test_stash_analytics_tab_thread(dash_thread_server):
             # Check title elements
             graph_title = page.locator(".gtitle")
             assert graph_title.count() > 0
+            
+            browser.close()
+
+
+def test_new_tabs_flow(dash_thread_server):
+    from unittest.mock import patch, MagicMock
+    import requests
+    
+    original_get = requests.get
+    original_post = requests.post
+    original_delete = requests.delete
+    
+    def mock_get(url, *args, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        if "stash/unified/list.json" in url:
+            mock_resp.json.return_value = {
+                "unified_stash": [
+                    {
+                        "stash": {
+                            "id": 101,
+                            "name": "Super Yarn",
+                            "created_at": "2026/05/01 12:00:00 -0400",
+                            "updated_at": "2026/05/01 12:00:00 -0400",
+                            "yarn": {"yarn_company_name": "Co", "yardage": 100},
+                            "packs": [{"skeins": 2}]
+                        }
+                    }
+                ]
+            }
+            return mock_resp
+        elif "projects/list.json" in url:
+            mock_resp.json.return_value = {
+                "projects": [
+                    {
+                        "id": 201,
+                        "name": "Cozy Scarf",
+                        "status_name": "In progress",
+                        "craft_name": "Knitting",
+                        "progress": 50,
+                        "started": "2026/06/01",
+                        "notes": "Using new alpaca yarn."
+                    }
+                ]
+            }
+            return mock_resp
+        elif "queue/list.json" in url:
+            mock_resp.json.return_value = {
+                "queued_projects": [
+                    {
+                        "id": 301,
+                        "name": "Warm Mittens",
+                        "sort_order": 1,
+                        "pattern_name": "Easy Mitts",
+                        "yarn_name": "Wooly",
+                        "skeins": 2,
+                        "notes": "Gift for mom."
+                    },
+                    {
+                        "id": 302,
+                        "name": "Winter Hat",
+                        "sort_order": 2,
+                        "pattern_name": "Slouchy Beanie",
+                        "yarn_name": "Soft Wool",
+                        "skeins": 1
+                    }
+                ]
+            }
+            return mock_resp
+        elif "needles/list.json" in url:
+            mock_resp.json.return_value = {
+                "needle_records": [
+                    {
+                        "id": 401,
+                        "comment": "Circular needles",
+                        "needle_size": {"us": "8", "metric": 5.0},
+                        "needle_type": {"name": "Circular", "length": 24.0}
+                    },
+                    {
+                        "id": 402,
+                        "comment": "Crochet hook",
+                        "needle_size": {"hook": "H", "metric": 5.0},
+                        "needle_type": {"name": "Crochet Hook", "length": 6.0}
+                    }
+                ]
+            }
+            return mock_resp
+        return original_get(url, *args, **kwargs)
+
+    def mock_post(url, *args, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        if "reposition.json" in url:
+            mock_resp.json.return_value = {"success": True}
+            return mock_resp
+        return original_post(url, *args, **kwargs)
+
+    def mock_delete(url, *args, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        if "queue/" in url:
+            mock_resp.json.return_value = {"success": True}
+            return mock_resp
+        return original_delete(url, *args, **kwargs)
+
+    with patch("requests.get", side_effect=mock_get), \
+         patch("requests.post", side_effect=mock_post), \
+         patch("requests.delete", side_effect=mock_delete):
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            
+            page.goto(dash_thread_server)
+            page.wait_for_load_state("networkidle")
+            
+            # 1. Verify Projects tab
+            page.click("text=Projects")
+            page.wait_for_selector("#projects-list-container")
+            assert "Cozy Scarf" in page.content()
+            
+            # 2. Verify Queue tab
+            page.click("text=Queue")
+            page.wait_for_selector("#queue-list-container")
+            assert "Warm Mittens" in page.content()
+            assert "Winter Hat" in page.content()
+            
+            # 3. Verify Needles & Hooks tab
+            page.click("text=Needles & Hooks")
+            page.wait_for_selector("#needles-list-container")
+            assert "Knitting Needles" in page.content()
+            assert "Crochet Hooks" in page.content()
             
             browser.close()
 

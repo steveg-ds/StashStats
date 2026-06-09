@@ -6,7 +6,10 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from .base import Base
-from .components import Header, Search, SearchResults, StashCard, EditModal, AnalyticsComponent
+from .components import (
+    Header, Search, SearchResults, StashCard, EditModal, AnalyticsComponent,
+    ProjectsComponent, QueueComponent, NeedlesComponent
+)
 from .model import Model
 
 
@@ -61,6 +64,9 @@ class AppController(Base):
         self.STASH_CARD: 'StashCard' = StashCard(container_id=stash_card_id)
         self.EDIT_MODAL: 'EditModal' = EditModal(container_id=modal_id)
         self.ANALYTICS: 'AnalyticsComponent' = AnalyticsComponent(container_id=analytics_id)
+        self.PROJECTS: 'ProjectsComponent' = ProjectsComponent(container_id="app-projects")
+        self.QUEUE: 'QueueComponent' = QueueComponent(container_id="app-queue")
+        self.NEEDLES: 'NeedlesComponent' = NeedlesComponent(container_id="app-needles")
 
     def create_initial_layout(self) -> List[dbc.Container]:
         """
@@ -89,6 +95,36 @@ class AppController(Base):
                             children=[
                                 html.Div(style={"height": "20px"}),
                                 dbc.Container(id="analytics-tab-content")
+                            ],
+                            style={"backgroundColor": "#222", "color": "#fff"},
+                            selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                        ),
+                        dcc.Tab(
+                            label="Projects",
+                            value="tab-projects",
+                            children=[
+                                html.Div(style={"height": "20px"}),
+                                dbc.Container(id="projects-tab-content")
+                            ],
+                            style={"backgroundColor": "#222", "color": "#fff"},
+                            selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                        ),
+                        dcc.Tab(
+                            label="Queue",
+                            value="tab-queue",
+                            children=[
+                                html.Div(style={"height": "20px"}),
+                                dbc.Container(id="queue-tab-content")
+                            ],
+                            style={"backgroundColor": "#222", "color": "#fff"},
+                            selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
+                        ),
+                        dcc.Tab(
+                            label="Needles & Hooks",
+                            value="tab-needles",
+                            children=[
+                                html.Div(style={"height": "20px"}),
+                                dbc.Container(id="needles-tab-content")
                             ],
                             style={"backgroundColor": "#222", "color": "#fff"},
                             selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
@@ -500,3 +536,68 @@ class AppController(Base):
             "modal-tab-details",
             datetime.date.today().isoformat(),
         )
+
+    def render_projects_tab_layout(self) -> html.Div:
+        """Render layout structure for Projects tab."""
+        return self.PROJECTS.create_init_layout()
+
+    def render_projects_list(self) -> List[dbc.Col]:
+        """Fetch and render projects as card components."""
+        projects = self.MODEL.get_projects_list()
+        if not projects:
+            return [dbc.Col(html.Div("No projects found or API request failed.", className="text-warning mt-3"))]
+        return [self.PROJECTS.build_project_card(p) for p in projects]
+
+    def render_queue_tab_layout(self) -> html.Div:
+        """Render layout structure for Queue tab."""
+        return self.QUEUE.create_init_layout()
+
+    def render_queue_list(self) -> Any:
+        """Fetch and render Ravelry project queue."""
+        queue_items = self.MODEL.get_queue_list()
+        return self.QUEUE.build_queue_list(queue_items)
+
+    def render_needles_tab_layout(self) -> html.Div:
+        """Render layout structure for Needles tab."""
+        return html.Div(
+            [
+                html.H4("Needles & Hooks Organizer", className="mt-3 text-success"),
+                html.P("Keep track of your knitting needles and crochet hooks."),
+                self.NEEDLES.create_init_layout()
+            ]
+        )
+
+    def render_needles_list(self) -> Any:
+        """Fetch and render owned needles and hooks."""
+        needle_records = self.MODEL.get_needles_list()
+        return self.NEEDLES.build_needles_tables(needle_records)
+
+    def handle_reposition_queue(self, queue_id: str, direction: str) -> bool:
+        """Move a queue item up or down in rank and refresh."""
+        queue_items = self.MODEL.get_queue_list()
+        if not queue_items:
+            return False
+        
+        sorted_items = sorted(queue_items, key=lambda x: x.get("sort_order") or x.get("position_in_queue") or 999)
+        target_idx = -1
+        for idx, item in enumerate(sorted_items):
+            if str(item.get("id")) == str(queue_id):
+                target_idx = idx
+                break
+        
+        if target_idx == -1:
+            return False
+            
+        if direction == "up" and target_idx > 0:
+            new_pos = target_idx
+            return self.MODEL.reposition_queue_item(queue_id, new_pos)
+        elif direction == "down" and target_idx < len(sorted_items) - 1:
+            new_pos = target_idx + 2
+            return self.MODEL.reposition_queue_item(queue_id, new_pos)
+            
+        return False
+
+    def handle_remove_queue(self, queue_id: str) -> bool:
+        """Delete an item from Ravelry queue."""
+        return self.MODEL.remove_queue_item(queue_id)
+
