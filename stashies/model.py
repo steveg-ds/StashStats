@@ -78,6 +78,7 @@ class Model(Base):
 
     def get_redis(self):
         if self._redis is None:
+            import os
             import redis
             redis_url = os.getenv("REDIS_URL")
             if not redis_url:
