@@ -121,7 +121,7 @@ class Model(Base):
         import concurrent.futures
         from .db import DBManager
         
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/list.json"
         
         all_stashes = []
@@ -263,7 +263,7 @@ class Model(Base):
         Post a new stash entry to the user's Ravelry stash.
         """
         import os
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/create.json"
         return self.REQ.post_request(endpoint=endpoint, data=stash_data)
 
@@ -271,7 +271,7 @@ class Model(Base):
         """Update a stash entry via PUT and invalidate local cache for that entry."""
         import os
 
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/{stash_id}.json"
         result = self.REQ.put_request(endpoint=endpoint, data=stash_data)
 
@@ -315,7 +315,7 @@ class Model(Base):
         """
         import os
         import pandas as pd
-        username = os.getenv("USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         proj_map = {}
         try:
             proj_resp = self.REQ.get_request(f"people/{username}/projects/list.json", params={"page_size": 100})

@@ -9,7 +9,7 @@ import sys
 # Set default env vars for tests to pass Pydantic settings checks
 os.environ.setdefault("API_USERNAME", "test_user")
 os.environ.setdefault("API_KEY", "test_key")
-os.environ.setdefault("USERNAME", "test_user")
+os.environ.setdefault("RAVELRY_USERNAME", "test_user")
 
 # Mock DBManager & Redis globally in test runner
 class MockDBManager:
@@ -52,7 +52,7 @@ def dash_server():
     # Dash will use the default port 8050
     proc = subprocess.Popen(
         [".venv/bin/python", "app.py"],
-        env={**os.environ, "API_USERNAME": "test_user", "API_KEY": "test_key", "USERNAME": "test_user"}
+        env={**os.environ, "API_USERNAME": "test_user", "API_KEY": "test_key", "RAVELRY_USERNAME": "test_user"}
     )
     # Wait for Dash app to launch
     time.sleep(3)
@@ -90,6 +90,7 @@ def dash_thread_server():
 
 def test_stash_yarn_flow_thread(dash_thread_server):
     import requests
+    from unittest.mock import patch, MagicMock
 
     # We patch requests in the current process because the server runs in a thread here
     original_get = requests.get
