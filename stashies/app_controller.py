@@ -492,7 +492,7 @@ class AppController(Base):
         store_data_list: list,
         btn_ids: list,
         triggered_id: str,
-    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str]:
+    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str, str]:
         """
         Handle opening the edit modal and loading the correct initial state.
         - Input
@@ -507,13 +507,13 @@ class AppController(Base):
         from dash import no_update
         
         if "edit-stash-cancel-btn" in triggered_id:
-            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat(), "Edit Stash Entry"
 
         try:
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
         except Exception:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat(), "Edit Stash Entry"
 
         sd = None
         for i, btn_id in enumerate(btn_ids or []):
@@ -522,9 +522,10 @@ class AppController(Base):
                 break
 
         if not sd:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat(), "Edit Stash Entry"
 
         current_skeins = sd.get("skeins") or 0
+        yarn_name = sd.get("yarn_name") or "Unnamed Yarn"
         return (
             True,
             sd.get("id"),
@@ -539,6 +540,7 @@ class AppController(Base):
             None,
             "modal-tab-details",
             datetime.date.today().isoformat(),
+            f"Edit: {yarn_name}"
         )
 
     def render_projects_tab_layout(self) -> html.Div:
