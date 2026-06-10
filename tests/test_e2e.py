@@ -287,8 +287,13 @@ def test_stash_analytics_tab_thread(dash_thread_server):
             # Click analytics tab
             page.click("text=Stash Analytics")
             
-            # Wait for Plotly Graph wrapper to be rendered
-            page.wait_for_selector(".js-plotly-plot")
+            try:
+                # Wait for Plotly Graph wrapper to be rendered
+                page.wait_for_selector("text=Cumulative Stashed Yardage Over Time", timeout=5000)
+            except Exception as e:
+                print("\nTIMEOUT ERROR - PRINTING HTML CONTENT OF ANALYTICS CONTENT AREA:")
+                print(page.locator("#analytics-content-area").inner_html())
+                raise e
             
             # Check title elements
             graph_title = page.locator(".gtitle")
