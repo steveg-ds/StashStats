@@ -406,7 +406,8 @@ class AppController(Base):
             else:
                 return "Failed to stash yarn. Please verify credentials."
         except Exception as e:
-            return f"Error occurred: {str(e)}"
+            self.LOGGER.error(f"Error in handle_add_to_stash: {e}")
+            return "An error occurred while adding to stash. Please check the logs."
 
     def handle_save_edit(
         self,
@@ -460,7 +461,7 @@ class AppController(Base):
                     return "Save failed — check logs.", True
             except Exception as e:
                 self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}")
-                return f"Error: {e}", True
+                return "An error occurred while saving. Please check the logs.", True
         else:
             payload = {"stash_status_id": int(status_id) if status_id else 1}
             if colorway is not None:
@@ -483,7 +484,7 @@ class AppController(Base):
                     return "Save failed — check logs.", True
             except Exception as e:
                 self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}")
-                return f"Error: {e}", True
+                return "An error occurred while saving. Please check the logs.", True
 
     def toggle_edit_modal(
         self,
