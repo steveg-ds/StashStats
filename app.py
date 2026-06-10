@@ -126,6 +126,7 @@ def filter_stash_items(query, tab_value):
     Output("edit-stash-used-skeins", "value"),
     Output("edit-stash-modal-tabs", "active_tab"),
     Output("edit-stash-usage-date", "date"),
+    Output("edit-stash-modal-title", "children"),
     Input({"type": "stash-edit-btn", "index": ALL}, "n_clicks"),
     Input("edit-stash-cancel-btn", "n_clicks"),
     State({"type": "stash-data-store", "index": ALL}, "data"),

@@ -151,6 +151,7 @@ class StashCard(BaseComponent):
             id={"type": "stash-data-store", "index": stash_id_str},
             data={
                 "id": s.get("id"),
+                "yarn_name": s.get("name") or "Unnamed Yarn",
                 "colorway": s.get("colorway_name") or "",
                 "dye_lot": s.get("dye_lot") or "",
                 "location": s.get("location") or "",
