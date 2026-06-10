@@ -75,6 +75,8 @@ class Model(Base):
     """
     REQ: 'Req' = Field(default_factory=Req)
     _redis: Any = None
+    # Private attributes for internal caching, not tracked by Pydantic
+    _df_cache: Dict[str, Any] = Field(default_factory=dict, init=False, exclude=True)
 
     def get_redis(self):
         if self._redis is None:
@@ -515,6 +517,16 @@ class Model(Base):
         - output: pandas.DataFrame containing sorted date-grouped stats and cumulatives.
         """
         import pandas as pd
+        import json
+        import hashlib
+
+        # Simple memoization to avoid redundant calculations when switching metrics
+        # Note: We use a string representation of the inputs to build a cache key.
+        # This is safe as long as the inputs are JSON-serializable.
+        cache_key = hashlib.md5(json.dumps([stash_list, {str(k): str(v) for k, v in proj_map.items()}], sort_keys=True).encode()).hexdigest()
+        if hasattr(self, '_df_cache') and cache_key in self._df_cache:
+            return self._df_cache[cache_key]
+
         data = []
         for s in stash_list:
             created_str = s.get("created_at")
@@ -649,6 +661,14 @@ class Model(Base):
         df["cumulative_skeins"] = df["skeins"].cumsum()
         df["cumulative_grams"] = df["grams"].cumsum()
 
+        if not hasattr(self, '_df_cache'):
+            self._df_cache = {}
+
+        # Limit cache size to 10 entries to avoid memory leaks
+        if len(self._df_cache) >= 10:
+            self._df_cache.clear()
+
+        self._df_cache[cache_key] = df
         return df
 
     def get_projects_list(self) -> Optional[List[Dict[str, Any]]]:

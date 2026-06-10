@@ -170,12 +170,21 @@ class AppController(Base):
         if yarns is not None:
             self.LOGGER.debug(f"Query: {query}, # of Yarns Found: {len(yarns)}")
             
-            accordion_items: List[dbc.AccordionItem] = []
-            for y in yarns:
+            import concurrent.futures
+
+            # Fetch full yarn details in parallel to avoid N+1 bottleneck
+            def fetch_full_yarn(y):
                 full_yarn = self.MODEL.get_full_yarn(y.id)
-                if not full_yarn:
-                    full_yarn = y
-                
+                return full_yarn if full_yarn else y
+
+            if yarns:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, len(yarns))) as executor:
+                    full_yarns = list(executor.map(fetch_full_yarn, yarns))
+            else:
+                full_yarns = []
+
+            accordion_items: List[dbc.AccordionItem] = []
+            for full_yarn in full_yarns:
                 if full_yarn.photos:
                     photo_urls = [p.medium for p in full_yarn.photos]
                 else:
