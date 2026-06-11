@@ -210,6 +210,14 @@ class Model(Base):
         # Connect to Redis
         r = self.get_redis()
 
+        # Batch fetch original values and history from DB for all items
+        all_ids = [str(s["id"]) for s in all_stashes if "id" in s]
+        all_orig_values = DBManager.get_batch_original_values(all_ids)
+        all_histories = DBManager.get_batch_stash_history(all_ids)
+
+        # Build map for faster lookup in results loop
+        stash_map = {str(s["id"]): s for s in all_stashes if "id" in s}
+
         dirty_items = []
         for s in all_stashes:
             if "id" not in s:
@@ -230,9 +238,9 @@ class Model(Base):
                     cached_data = json.loads(cached_val)
                     if cached_data.get("updated_at") == updated_at:
                         s["packs"] = cached_data.get("packs") or []
-                        # Retrieve history and original_values from SQLite
-                        s["history"] = DBManager.get_stash_history(stash_id) or []
-                        s["original_values"] = DBManager.get_original_values(stash_id)
+                        # Retrieve history and original_values from batch data
+                        s["history"] = all_histories.get(stash_id) or []
+                        s["original_values"] = all_orig_values.get(stash_id)
                         continue
                 except Exception as e:
                     self.LOGGER.error(f"Failed to parse cached details for {stash_id}: {e}")
@@ -270,11 +278,7 @@ class Model(Base):
                 if stash_detail:
                     s_id_str = str(s_id)
                     
-                    item_in_list = None
-                    for item in all_stashes:
-                        if str(item.get("id")) == s_id_str:
-                            item_in_list = item
-                            break
+                    item_in_list = stash_map.get(s_id_str)
                             
                     is_fiber = item_in_list.get("type") == "fiber" if item_in_list else False
                     
@@ -316,7 +320,7 @@ class Model(Base):
                         
                     new_totals = get_primary_totals(new_packs, yarn_info)
                     
-                    old_totals = DBManager.get_original_values(s_id_str)
+                    old_totals = all_orig_values.get(s_id_str)
                     
                     if old_totals:
                         delta = {
@@ -366,12 +370,18 @@ class Model(Base):
                         except Exception as e:
                             self.LOGGER.error(f"Redis set failed for {s_id_str}: {e}")
 
-                    for item in all_stashes:
-                        if item["id"] == s_id:
-                            item["packs"] = new_packs
-                            item["history"] = DBManager.get_stash_history(s_id_str) or []
-                            item["original_values"] = DBManager.get_original_values(s_id_str)
-                            break
+                    if item_in_list:
+                        item_in_list["packs"] = new_packs
+                        # History and original_values will be updated in batch after this loop
+
+            # Final batch fetch to ensure all items have latest DB values (e.g. after history updates)
+            all_orig_values = DBManager.get_batch_original_values(all_ids)
+            all_histories = DBManager.get_batch_stash_history(all_ids)
+            for s in all_stashes:
+                if "id" in s:
+                    sid = str(s["id"])
+                    s["history"] = all_histories.get(sid) or []
+                    s["original_values"] = all_orig_values.get(sid)
                             
         return all_stashes
 

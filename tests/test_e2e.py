@@ -38,6 +38,14 @@ class MockDBManager:
             "date": event_date, "yards": yards, "meters": meters, "skeins": skeins, "grams": grams
         })
 
+    @classmethod
+    def get_batch_original_values(cls, stash_ids):
+        return {str(sid): cls._orig[str(sid)] for sid in stash_ids if str(sid) in cls._orig}
+
+    @classmethod
+    def get_batch_stash_history(cls, stash_ids):
+        return {str(sid): cls._history[str(sid)] for sid in stash_ids if str(sid) in cls._history}
+
 # Apply mocks to test environment before import
 import stashies.db
 stashies.db.DBManager = MockDBManager
@@ -471,6 +479,52 @@ def test_yarn_multiple_photos_validation():
     assert len(y.photos) == 2
     assert str(y.photos[0].medium) == "https://placehold.co/150"
     assert str(y.photos[1].medium) == "https://placehold.co/250"
+
+
+def test_db_manager_batch_fetch():
+    """Verify REAL DBManager batch fetch methods using a temporary SQLite DB."""
+    import os
+    import tempfile
+    from stashies.db import DBManager as RealDBManager
+
+    # Use a temp file for testing real DB logic
+    fd, temp_db_path = tempfile.mkstemp()
+    os.close(fd)
+
+    try:
+        os.environ["SQLITE_DB_PATH"] = temp_db_path
+        # Reset the pool to use new path
+        RealDBManager._pool = None
+
+        # 1. Test Batch Original Values
+        RealDBManager.save_original_values("batch_101", 100, 91, 1, 100)
+        RealDBManager.save_original_values("batch_102", 200, 182, 2, 200)
+
+        batch_orig = RealDBManager.get_batch_original_values(["batch_101", "batch_102", "batch_103"])
+        assert len(batch_orig) == 2
+        assert batch_orig["batch_101"]["yards"] == 100
+        assert batch_orig["batch_102"]["skeins"] == 2
+        assert "batch_103" not in batch_orig
+
+        # 2. Test Batch History
+        RealDBManager.save_history_event("batch_101", "2026-06-01", -10, -9, -0.1, -10)
+        RealDBManager.save_history_event("batch_101", "2026-06-02", -20, -18, -0.2, -20)
+        RealDBManager.save_history_event("batch_102", "2026-06-05", -50, -45, -0.5, -50)
+
+        batch_hist = RealDBManager.get_batch_stash_history(["batch_101", "batch_102", "batch_104"])
+        assert len(batch_hist) == 2
+        assert len(batch_hist["batch_101"]) == 2
+        assert len(batch_hist["batch_102"]) == 1
+        assert batch_hist["batch_101"][0]["yards"] == -10
+        assert batch_hist["batch_101"][1]["yards"] == -20
+        assert "batch_104" not in batch_hist
+
+    finally:
+        if os.path.exists(temp_db_path):
+            os.remove(temp_db_path)
+        # Reset environment
+        del os.environ["SQLITE_DB_PATH"]
+        RealDBManager._pool = None
 
 
 def test_stash_card_carousel_rendering():
