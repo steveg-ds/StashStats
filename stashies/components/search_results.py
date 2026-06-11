@@ -220,6 +220,7 @@ class SearchResults(BaseComponent):
         elif photos:
             img_element = html.Img(
                 src=str(photos[0]),
+                alt=f"Photo of {name}",
                 style={
                     'height': '150px',
                     'width': 'auto',

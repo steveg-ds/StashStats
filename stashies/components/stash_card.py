@@ -77,6 +77,7 @@ class StashCard(BaseComponent):
         elif len(photo_urls) == 1:
             img_element = html.Img(
                 src=photo_urls[0],
+                alt=f"Photo of {s.get('name') or 'yarn'}",
                 style={"height": "120px", "objectFit": "cover", "width": "100%", "borderRadius": "4px"}
             )
         else:
@@ -142,6 +143,7 @@ class StashCard(BaseComponent):
         edit_btn = dbc.Button(
             [html.I(className="bi bi-pencil-fill me-1"), "Edit"],
             id={"type": "stash-edit-btn", "index": stash_id_str},
+            title=f"Edit {s.get('name') or 'stash entry'}",
             color="outline-success",
             size="sm",
             className="mt-2 w-100 w-md-auto",

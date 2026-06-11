@@ -24,6 +24,7 @@ class Header(BaseComponent):
                 [
                     html.Img(
                         src="../static/Images/logo_color.png",
+                        alt="StashStats Logo",
                         style=dict(width="75%", height="125px"),
                     ),
                     html.Hr(style={"margin": "20px 0"}),

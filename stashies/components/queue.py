@@ -51,6 +51,7 @@ class QueueComponent(BaseComponent):
 
             img_element = html.Img(
                 src=photo_url,
+                alt=f"Photo of queued project {q.get('name') or ''}",
                 style={"height": "60px", "width": "60px", "objectFit": "cover", "borderRadius": "4px"}
             ) if photo_url else html.Div(
                 html.I(className="bi bi-clock-history fs-3 text-muted"),
@@ -75,6 +76,7 @@ class QueueComponent(BaseComponent):
                 dbc.Button(
                     html.I(className="bi bi-arrow-up"),
                     id={"type": "queue-up-btn", "index": q_id_str},
+                    title="Move project up in queue",
                     color="outline-success",
                     size="sm",
                     disabled=(i == 0),
@@ -83,6 +85,7 @@ class QueueComponent(BaseComponent):
                 dbc.Button(
                     html.I(className="bi bi-arrow-down"),
                     id={"type": "queue-down-btn", "index": q_id_str},
+                    title="Move project down in queue",
                     color="outline-success",
                     size="sm",
                     disabled=(i == n_items - 1),
@@ -91,6 +94,7 @@ class QueueComponent(BaseComponent):
                 dbc.Button(
                     html.I(className="bi bi-trash-fill"),
                     id={"type": "queue-remove-btn", "index": q_id_str},
+                    title="Remove project from queue",
                     color="danger",
                     size="sm"
                 )
