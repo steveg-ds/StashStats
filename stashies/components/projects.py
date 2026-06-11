@@ -56,6 +56,7 @@ class ProjectsComponent(BaseComponent):
 
         img_element = html.Img(
             src=photo_url,
+            alt=f"Photo of project {p.get('name') or ''}",
             style={"height": "140px", "objectFit": "cover", "width": "100%", "borderRadius": "4px"}
         ) if photo_url else html.Div(
             html.I(className="bi bi-journal-text fs-1 text-muted"),
