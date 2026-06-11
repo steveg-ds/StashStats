@@ -406,7 +406,8 @@ class AppController(Base):
             else:
                 return "Failed to stash yarn. Please verify credentials."
         except Exception as e:
-            return f"Error occurred: {str(e)}"
+            self.LOGGER.error(f"Error adding to stash: {e}", exc_info=True)
+            return "An unexpected error occurred while adding yarn to stash. Please try again later."
 
     def handle_save_edit(
         self,
@@ -459,8 +460,8 @@ class AppController(Base):
                     self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} | usage | payload={payload}")
                     return "Save failed — check logs.", True
             except Exception as e:
-                self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}")
-                return f"Error: {e}", True
+                self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}", exc_info=True)
+                return "An error occurred while saving usage data. Please try again later.", True
         else:
             payload = {"stash_status_id": int(status_id) if status_id else 1}
             if colorway is not None:
@@ -482,8 +483,8 @@ class AppController(Base):
                     self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} | details | payload={payload}")
                     return "Save failed — check logs.", True
             except Exception as e:
-                self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}")
-                return f"Error: {e}", True
+                self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}", exc_info=True)
+                return "An error occurred while saving stash details. Please try again later.", True
 
     def toggle_edit_modal(
         self,
