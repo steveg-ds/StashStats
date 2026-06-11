@@ -1,0 +1,4 @@
+## 2025-05-23 - Prevent Information Leakage in Controller Error Handlers
+**Vulnerability:** Controller methods were catching generic exceptions and returning the raw exception string (e.g., `f"Error occurred: {str(e)}"`) directly to the Dash frontend.
+**Learning:** Returning raw exception messages can expose sensitive internal details like database schema, file paths, or API configuration. In a Dash application, these messages are often displayed in user-facing components (like status messages or modals), leading to information disclosure.
+**Prevention:** Always catch exceptions in the controller/UI layer and return generic, user-friendly error messages. Ensure that the detailed error (including stack trace) is logged server-side using `self.LOGGER.error(..., exc_info=True)` for auditing and debugging.
