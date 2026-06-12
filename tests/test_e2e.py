@@ -284,6 +284,12 @@ def test_stash_analytics_tab_thread(dash_thread_server):
             # Check title elements
             graph_title = page.locator(".gtitle")
             assert graph_title.count() > 0
+
+            # Toggle moving average checkbox
+            page.check("#analytics-moving-average-checkbox")
+
+            # Wait for updated graph title
+            page.wait_for_selector("text=Cumulative Stashed Yardage Over Time (30-Day Moving Average)", timeout=5000)
             
             browser.close()
 
