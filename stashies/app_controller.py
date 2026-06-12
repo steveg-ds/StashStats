@@ -268,11 +268,12 @@ class AppController(Base):
         layout.children[0].children[3].children = content
         return layout
 
-    def render_analytics_content(self, selected_metric: str) -> html.Div:
+    def render_analytics_content(self, selected_metric: str, moving_average: bool = False) -> html.Div:
         """
         Extract data and render visual elements for analytics page.
         - Input
             - selected_metric (str): Selected metric option.
+            - moving_average (bool): True if showing moving average.
         - output: html.Div container.
         """
         stash_list = self.MODEL.get_stash_list()
@@ -298,15 +299,25 @@ class AppController(Base):
             selected_metric=selected_metric,
         )
 
+        if moving_average:
+            import pandas as pd
+            df_daily = df.set_index("date").resample("D").asfreq()
+            cumulative_cols = ["cumulative_yards", "cumulative_meters", "cumulative_skeins", "cumulative_grams"]
+            df_daily[cumulative_cols] = df_daily[cumulative_cols].ffill()
+            df_daily[cumulative_cols] = df_daily[cumulative_cols].fillna(0.0)
+            for col in cumulative_cols:
+                df_daily[col] = df_daily[col].rolling(window=30, min_periods=1).mean()
+            df = df_daily.reset_index()
+
         if selected_metric == "all":
             figs = {}
             for k, m_info in self.ANALYTICS.METRIC_MAP.items():
-                figs[k] = self.ANALYTICS.build_figure(df, m_info, is_mobile=True)
+                figs[k] = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average)
             grid = self.ANALYTICS.build_grid(figs)
             return html.Div([stats_cards, grid])
         else:
             m_info = self.ANALYTICS.METRIC_MAP.get(selected_metric, self.ANALYTICS.METRIC_MAP["yards"])
-            fig = self.ANALYTICS.build_figure(df, m_info, is_mobile=True)
+            fig = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average)
             return html.Div(
                 [
                     stats_cards,

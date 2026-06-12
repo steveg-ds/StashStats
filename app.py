@@ -89,9 +89,10 @@ def render_analytics_layout(tab_value):
 @callback(
     Output("analytics-content-area", "children"),
     Input("analytics-metric-selector", "value"),
+    Input("analytics-moving-average-checkbox", "value"),
 )
-def update_analytics_content(selected_metric):
-    return CONTROLLER.render_analytics_content(selected_metric)
+def update_analytics_content(selected_metric, moving_average):
+    return CONTROLLER.render_analytics_content(selected_metric, moving_average)
 
 
 @callback(
