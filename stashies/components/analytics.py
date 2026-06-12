@@ -219,8 +219,31 @@ class AnalyticsComponent(BaseComponent):
             hovermode="x unified",
             font=dict(size=font_size, color="#ffffff"),
             title_font=dict(size=title_size, color="#00bc8c"),
-            xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)", tickfont=dict(size=font_size)),
-            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)", tickformat=",", tickfont=dict(size=font_size)),
+            xaxis=dict(
+                showgrid=True,
+                gridcolor="rgba(255,255,255,0.1)",
+                tickfont=dict(size=font_size),
+                rangeslider=dict(visible=True, thickness=0.08),
+                rangeselector=dict(
+                    buttons=list([
+                        dict(count=1, label="1m", step="month", stepmode="backward"),
+                        dict(count=6, label="6m", step="month", stepmode="backward"),
+                        dict(count=1, label="YTD", step="year", stepmode="todate"),
+                        dict(count=1, label="1y", step="year", stepmode="backward"),
+                        dict(step="all")
+                    ]),
+                    bgcolor="#222222",
+                    activecolor="#00bc8c",
+                    font=dict(color="#ffffff")
+                )
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor="rgba(255,255,255,0.1)",
+                tickformat=",",
+                tickfont=dict(size=font_size),
+                fixedrange=False
+            ),
             hoverlabel=dict(bgcolor="#222222", font_size=font_size, font_color="#ffffff"),
             margin=dict(l=margin_l, r=margin_r, t=margin_t, b=margin_b),
             paper_bgcolor="rgba(0,0,0,0)",

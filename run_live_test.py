@@ -45,6 +45,12 @@ def test_live():
             print("All core functionality tested successfully.")
         except Exception as e:
             print(f"Error during browser tests: {e}")
+            if page:
+                try:
+                    print("\nPAGE BODY HTML:")
+                    print(page.locator("body").inner_html())
+                except Exception:
+                    pass
             sys.exit(1)
         finally:
             if browser:
