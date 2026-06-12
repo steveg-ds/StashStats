@@ -76,9 +76,15 @@ class AnalyticsComponent(BaseComponent):
                     value=selected_metric,
                     clearable=False,
                     style={"width": "250px", "color": "#000000"},
+                ),
+                dbc.Checkbox(
+                    id="analytics-moving-average-checkbox",
+                    label="30-Day Moving Average",
+                    value=False,
+                    className="text-success fw-bold ms-4",
                 )
             ],
-            className="d-flex align-items-center mb-3 mt-3"
+            className="d-flex align-items-center mb-3 mt-3 flex-wrap"
         )
 
         return dbc.Row(
@@ -175,22 +181,28 @@ class AnalyticsComponent(BaseComponent):
             className="mb-4 mt-3"
         )
 
-    def build_figure(self, df: Any, metric_info: Dict[str, Any], is_mobile: bool = False) -> Any:
+    def build_figure(self, df: Any, metric_info: Dict[str, Any], is_mobile: bool = False, moving_average: bool = False) -> Any:
         """
         Create a Plotly Line figure using the metric metadata configuration.
         - Input
             - df (DataFrame): Sorted pandas DataFrame containing analytics timeseries.
             - metric_info (dict): Sub-dict of METRIC_MAP for the selected metric.
             - is_mobile (bool): True to render using compact margins/fonts.
+            - moving_average (bool): True if showing moving average.
         - output: plotly.graph_objects.Figure instance.
         """
         import plotly.express as px
+        title = metric_info["title"]
+        label = metric_info["label"]
+        if moving_average:
+            title = f"{title} (30-Day Moving Average)"
+            label = f"{label} (30-Day MA)"
         fig = px.line(
             df,
             x="date",
             y=metric_info["col"],
-            title=metric_info["title"],
-            labels={"date": "Date", metric_info["col"]: metric_info["label"]},
+            title=title,
+            labels={"date": "Date", metric_info["col"]: label},
             markers=True,
             line_shape="hv",
             template="plotly_dark"
@@ -207,8 +219,31 @@ class AnalyticsComponent(BaseComponent):
             hovermode="x unified",
             font=dict(size=font_size, color="#ffffff"),
             title_font=dict(size=title_size, color="#00bc8c"),
-            xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)", tickfont=dict(size=font_size)),
-            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)", tickformat=",", tickfont=dict(size=font_size)),
+            xaxis=dict(
+                showgrid=True,
+                gridcolor="rgba(255,255,255,0.1)",
+                tickfont=dict(size=font_size),
+                rangeslider=dict(visible=True, thickness=0.08),
+                rangeselector=dict(
+                    buttons=list([
+                        dict(count=1, label="1m", step="month", stepmode="backward"),
+                        dict(count=6, label="6m", step="month", stepmode="backward"),
+                        dict(count=1, label="YTD", step="year", stepmode="todate"),
+                        dict(count=1, label="1y", step="year", stepmode="backward"),
+                        dict(step="all")
+                    ]),
+                    bgcolor="#222222",
+                    activecolor="#00bc8c",
+                    font=dict(color="#ffffff")
+                )
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor="rgba(255,255,255,0.1)",
+                tickformat=",",
+                tickfont=dict(size=font_size),
+                fixedrange=False
+            ),
             hoverlabel=dict(bgcolor="#222222", font_size=font_size, font_color="#ffffff"),
             margin=dict(l=margin_l, r=margin_r, t=margin_t, b=margin_b),
             paper_bgcolor="rgba(0,0,0,0)",

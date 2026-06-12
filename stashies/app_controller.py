@@ -73,6 +73,8 @@ class AppController(Base):
         Build the top-level Dash layout with tabbed navigation.
         - output: List containing the header container and a tabbed panel with Personal Stash, Stash Analytics, and Yarn Search tabs.
         """
+        username = self.MODEL.get_current_username()
+        self.HEADER.update_layout(username)
         tabs_layout = html.Div(
             [
                 dcc.Tabs(
@@ -195,7 +197,7 @@ class AppController(Base):
                 )
                 accordion_items.append(item)
                 
-            return dbc.Col(dbc.Accordion(accordion_items), width=12) # modified width for mobile-friendly search results wrapper width
+            return dbc.Col(dbc.Accordion(accordion_items, start_collapsed=True), width=12) # modified width for mobile-friendly search results wrapper width
         else:
             self.LOGGER.error(f'Query: {query}, No Results Found')
             return html.Div("No results found.")
@@ -266,11 +268,12 @@ class AppController(Base):
         layout.children[0].children[3].children = content
         return layout
 
-    def render_analytics_content(self, selected_metric: str) -> html.Div:
+    def render_analytics_content(self, selected_metric: str, moving_average: bool = False) -> html.Div:
         """
         Extract data and render visual elements for analytics page.
         - Input
             - selected_metric (str): Selected metric option.
+            - moving_average (bool): True if showing moving average.
         - output: html.Div container.
         """
         stash_list = self.MODEL.get_stash_list()
@@ -296,15 +299,25 @@ class AppController(Base):
             selected_metric=selected_metric,
         )
 
+        if moving_average:
+            import pandas as pd
+            df_daily = df.set_index("date").resample("D").asfreq()
+            cumulative_cols = ["cumulative_yards", "cumulative_meters", "cumulative_skeins", "cumulative_grams"]
+            df_daily[cumulative_cols] = df_daily[cumulative_cols].ffill()
+            df_daily[cumulative_cols] = df_daily[cumulative_cols].fillna(0.0)
+            for col in cumulative_cols:
+                df_daily[col] = df_daily[col].rolling(window=30, min_periods=1).mean()
+            df = df_daily.reset_index()
+
         if selected_metric == "all":
             figs = {}
             for k, m_info in self.ANALYTICS.METRIC_MAP.items():
-                figs[k] = self.ANALYTICS.build_figure(df, m_info, is_mobile=True)
+                figs[k] = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average)
             grid = self.ANALYTICS.build_grid(figs)
             return html.Div([stats_cards, grid])
         else:
             m_info = self.ANALYTICS.METRIC_MAP.get(selected_metric, self.ANALYTICS.METRIC_MAP["yards"])
-            fig = self.ANALYTICS.build_figure(df, m_info, is_mobile=True)
+            fig = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average)
             return html.Div(
                 [
                     stats_cards,
@@ -492,7 +505,7 @@ class AppController(Base):
         store_data_list: list,
         btn_ids: list,
         triggered_id: str,
-    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str]:
+    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str, Any]:
         """
         Handle opening the edit modal and loading the correct initial state.
         - Input
@@ -507,24 +520,32 @@ class AppController(Base):
         from dash import no_update
         
         if "edit-stash-cancel-btn" in triggered_id:
-            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat(), no_update
 
         try:
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
         except Exception:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return (no_update,) * 14
 
         sd = None
+        clicks = None
         for i, btn_id in enumerate(btn_ids or []):
-            if str(btn_id.get("index", "")) == str(btn_index) and i < len(store_data_list):
-                sd = store_data_list[i]
+            if str(btn_id.get("index", "")) == str(btn_index):
+                if i < len(store_data_list):
+                    sd = store_data_list[i]
+                if i < len(edit_clicks):
+                    clicks = edit_clicks[i]
                 break
 
+        if not clicks:
+            return (no_update,) * 14
+
         if not sd:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return (no_update,) * 14
 
         current_skeins = sd.get("skeins") or 0
+        yarn_name = sd.get("name") or "Unnamed Yarn"
         return (
             True,
             sd.get("id"),
@@ -539,6 +560,7 @@ class AppController(Base):
             None,
             "modal-tab-details",
             datetime.date.today().isoformat(),
+            f"edit entry: {yarn_name}",
         )
 
     def render_projects_tab_layout(self) -> html.Div:
