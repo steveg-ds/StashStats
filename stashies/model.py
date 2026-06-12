@@ -112,6 +112,19 @@ class Model(Base):
             return yarns
         return None
 
+    def get_current_username(self) -> str:
+        """
+        Fetch the currently authenticated Ravelry username from Ravelry API or env fallback.
+        """
+        import os
+        try:
+            data = self.REQ.get_request("current_user.json")
+            if data and "user" in data:
+                return data["user"].get("username") or os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        except Exception as e:
+            self.LOGGER.error(f"Failed to fetch current user from API: {e}")
+        return os.getenv("RAVELRY_USERNAME") or "Thotsky"
+
     def get_stash_list(self) -> Optional[List[Dict[str, Any]]]:
         """
         Fetch all stash entries (yarn and fiber) for the configured user, enriched with pack details.
@@ -319,11 +332,24 @@ class Model(Base):
                     old_totals = DBManager.get_original_values(s_id_str)
                     
                     if old_totals:
+                        history_events = DBManager.get_stash_history(s_id_str) or []
+                        sum_history = {
+                            "yards": sum(event["yards"] for event in history_events),
+                            "meters": sum(event["meters"] for event in history_events),
+                            "skeins": sum(event["skeins"] for event in history_events),
+                            "grams": sum(event["grams"] for event in history_events),
+                        }
+                        previous_totals = {
+                            "yards": old_totals["yards"] + sum_history["yards"],
+                            "meters": old_totals["meters"] + sum_history["meters"],
+                            "skeins": old_totals["skeins"] + sum_history["skeins"],
+                            "grams": old_totals["grams"] + sum_history["grams"],
+                        }
                         delta = {
-                            "yards": new_totals["yards"] - old_totals["yards"],
-                            "meters": new_totals["meters"] - old_totals["meters"],
-                            "skeins": new_totals["skeins"] - old_totals["skeins"],
-                            "grams": new_totals["grams"] - old_totals["grams"]
+                            "yards": new_totals["yards"] - previous_totals["yards"],
+                            "meters": new_totals["meters"] - previous_totals["meters"],
+                            "skeins": new_totals["skeins"] - previous_totals["skeins"],
+                            "grams": new_totals["grams"] - previous_totals["grams"]
                         }
                         
                         # Only record a history event when pack totals actually changed
@@ -333,7 +359,30 @@ class Model(Base):
                                 date_part = pending_date
                             else:
                                 up_date_str = stash_detail.get("updated_at") or ""
-                                date_part = up_date_str.split(" ")[0].replace("/", "-") if up_date_str else ""
+                                import datetime
+                                today = datetime.date.today()
+                                updated_date = today
+                                if up_date_str:
+                                    try:
+                                        updated_date = datetime.datetime.strptime(up_date_str.split(" ")[0], "%Y/%m/%d").date()
+                                    except Exception:
+                                        pass
+                                
+                                if updated_date >= today:
+                                    created_date = today
+                                    created_at_str = stash_detail.get("created_at") or ""
+                                    if created_at_str:
+                                        try:
+                                            created_date = datetime.datetime.strptime(created_at_str.split(" ")[0], "%Y/%m/%d").date()
+                                        except Exception:
+                                            pass
+                                    delta_days = (today - created_date).days
+                                    if delta_days > 2:
+                                        date_part = (created_date + datetime.timedelta(days=delta_days // 2)).isoformat()
+                                    else:
+                                        date_part = today.isoformat()
+                                else:
+                                    date_part = updated_date.isoformat()
                             DBManager.save_history_event(
                                 stash_id=s_id_str,
                                 event_date=date_part,
@@ -366,12 +415,10 @@ class Model(Base):
                         except Exception as e:
                             self.LOGGER.error(f"Redis set failed for {s_id_str}: {e}")
 
-                    for item in all_stashes:
-                        if item["id"] == s_id:
-                            item["packs"] = new_packs
-                            item["history"] = DBManager.get_stash_history(s_id_str) or []
-                            item["original_values"] = DBManager.get_original_values(s_id_str)
-                            break
+                    if item_in_list:
+                        item_in_list["packs"] = new_packs
+                        item_in_list["history"] = DBManager.get_stash_history(s_id_str) or []
+                        item_in_list["original_values"] = DBManager.get_original_values(s_id_str)
                             
         return all_stashes
 
@@ -394,12 +441,12 @@ class Model(Base):
         return result
 
     def update_stash(self, stash_id: Union[str, int], stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Update a stash entry via PUT and invalidate local cache for that entry."""
+        """Update a stash entry via POST and invalidate local cache for that entry."""
         import os
 
         username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/{stash_id}.json"
-        result = self.REQ.put_request(endpoint=endpoint, data=stash_data)
+        result = self.REQ.post_request(endpoint=endpoint, data=stash_data)
 
         # Invalidate Redis cache
         r = self.get_redis()
@@ -585,6 +632,8 @@ class Model(Base):
 
             if packs:
                 for pack in packs:
+                    if pack.get("primary_pack_id") is not None:
+                        continue
                     skeins_val = float(pack.get("skeins") if pack.get("skeins") is not None else 1.0)
 
                     p_yards = pack.get("total_yards")
