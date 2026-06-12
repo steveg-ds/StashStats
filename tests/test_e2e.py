@@ -15,6 +15,7 @@ os.environ.setdefault("RAVELRY_USERNAME", "test_user")
 class MockDBManager:
     _history = {}
     _orig = {}
+    _pending_dates = {}
 
     @classmethod
     def get_pool(cls):
@@ -38,42 +39,20 @@ class MockDBManager:
             "date": event_date, "yards": yards, "meters": meters, "skeins": skeins, "grams": grams
         })
 
+    @classmethod
+    def set_pending_usage_date(cls, stash_id, usage_date):
+        cls._pending_dates[str(stash_id)] = usage_date
+
+    @classmethod
+    def pop_pending_usage_date(cls, stash_id):
+        return cls._pending_dates.pop(str(stash_id), None)
+
 # Apply mocks to test environment before import
 import stashies.db
 stashies.db.DBManager = MockDBManager
 
 # Mock redis module
 sys.modules['redis'] = MagicMock()
-
-
-import sys
-
-@pytest.fixture(scope="module")
-def dash_server():
-    # Start the app server in a background subprocess
-    # Dash will use the default port 8050
-    proc = subprocess.Popen(
-        [sys.executable, "app.py"],
-        env={**os.environ, "API_USERNAME": "test_user", "API_KEY": "test_key", "RAVELRY_USERNAME": "test_user"}
-    )
-    # Wait for Dash app to launch
-    time.sleep(3)
-    yield "http://127.0.0.1:8050"
-    # Kill the server process
-    proc.terminate()
-    proc.wait()
-
-def test_stash_yarn_flow(dash_server):
-    from unittest.mock import patch, MagicMock
-
-    # Setup mocks for requests library inside the server context
-    # Since requests calls happen in the Python server process, we can mock requests
-    # within the test thread or simply mock them on the model/controller objects if they are loaded,
-    # but the server is running in a subprocess. So let's mock it inside tests using standard patching or by
-    # changing how the server is instantiated.
-    # Actually, if we launch app.py in a subprocess, it won't share the main process's patches!
-    # Instead of running as a subprocess, let's run the Dash app in a thread so it shares the python environment.
-    pass
 
 @pytest.fixture(scope="module")
 def dash_thread_server():
@@ -131,6 +110,9 @@ def test_stash_yarn_flow_thread(dash_thread_server):
                 "colorways": [{"name": "Cave Red", "id": 1, "projects_count": 0, "stashes_count": 0}]
             }
             return mock_resp
+        elif "current_user.json" in url:
+            mock_resp.json.return_value = {"user": {"username": "test_user"}}
+            return mock_resp
         return original_get(url, *args, **kwargs)
 
     def mock_post(url, *args, **kwargs):
@@ -170,19 +152,20 @@ def test_stash_yarn_flow_thread(dash_thread_server):
             accordion_headers.first.click()
             
             # Verify form elements are visible inside the expanded panel
-            page.wait_for_selector("input[id*='stash-skeins']")
+            first_item = page.locator(".accordion-item").first
+            first_item.locator("input[id*='stash-skeins']").wait_for(state="visible")
             
             # Fill the stash form
-            page.fill("input[id*='stash-skeins']", "3.5")
-            page.fill("input[id*='stash-dyelot']", "Batch A")
-            page.fill("input[id*='stash-location']", "Living Room Box")
-            page.fill("input[id*='stash-notes']", "Purchased during sale")
+            first_item.locator("input[id*='stash-skeins']").fill("3.5")
+            first_item.locator("input[id*='stash-dyelot']").fill("Batch A")
+            first_item.locator("input[id*='stash-location']").fill("Living Room Box")
+            first_item.locator("input[id*='stash-notes']").fill("Purchased during sale")
             
             # Click add yarn to stash button
-            page.click("button[id*='stash-submit-btn']")
+            first_item.locator("button[id*='stash-submit-btn']").click()
             
             # Wait for the status message to appear and assert it
-            status_msg = page.locator("div[id*='stash-status-msg']")
+            status_msg = first_item.locator("div[id*='stash-status-msg']")
             page.wait_for_function("el => el.textContent !== ''", arg=status_msg.element_handle())
             
             text = status_msg.inner_text()
@@ -273,6 +256,9 @@ def test_stash_analytics_tab_thread(dash_thread_server):
                     }
                 ]
             }
+            return mock_resp
+        elif "current_user.json" in url:
+            mock_resp.json.return_value = {"user": {"username": "test_user"}}
             return mock_resp
         return original_get(url, *args, **kwargs)
 
@@ -384,6 +370,9 @@ def test_new_tabs_flow(dash_thread_server):
                     }
                 ]
             }
+            return mock_resp
+        elif "current_user.json" in url:
+            mock_resp.json.return_value = {"user": {"username": "test_user"}}
             return mock_resp
         return original_get(url, *args, **kwargs)
 

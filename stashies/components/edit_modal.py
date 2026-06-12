@@ -33,11 +33,12 @@ class EditModal(BaseComponent):
         """
         return dbc.Modal(
             [
-                dbc.ModalHeader(dbc.ModalTitle("Edit Stash Entry", className="text-success")),
+                dbc.ModalHeader(dbc.ModalTitle("Edit Stash Entry", id="edit-stash-modal-title", className="text-success")),
                 dbc.ModalBody(
                     [
                         dcc.Store(id="edit-stash-id-store"),
                         dcc.Store(id="edit-stash-current-skeins-store"),
+                        dcc.Store(id="stash-update-trigger", data=0),
                         dbc.Tabs(
                             [
                                 # Tab 1: Edit Details

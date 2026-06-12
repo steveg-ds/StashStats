@@ -39,7 +39,10 @@ CONTROLLER = AppController(
     result_id="app-results"
 )
 
-app.layout = dbc.Container(children=CONTROLLER.create_initial_layout())
+def serve_layout():
+    return dbc.Container(children=CONTROLLER.create_initial_layout())
+
+app.layout = serve_layout
 
 
 @callback(
@@ -105,8 +108,9 @@ def render_stash_tab(tab_value):
     Output("stash-list-container", "children"),
     Input("stash-search-query", "value"),
     Input("app-tabs", "value"),
+    Input("stash-update-trigger", "data"),
 )
-def filter_stash_items(query, tab_value):
+def filter_stash_items(query, tab_value, trigger_data):
     if tab_value != "tab-stash":
         return no_update
     return CONTROLLER.render_stash_cards(query)
@@ -126,6 +130,7 @@ def filter_stash_items(query, tab_value):
     Output("edit-stash-used-skeins", "value"),
     Output("edit-stash-modal-tabs", "active_tab"),
     Output("edit-stash-usage-date", "date"),
+    Output("edit-stash-modal-title", "children"),
     Input({"type": "stash-edit-btn", "index": ALL}, "n_clicks"),
     Input("edit-stash-cancel-btn", "n_clicks"),
     State({"type": "stash-data-store", "index": ALL}, "data"),
@@ -153,6 +158,7 @@ def update_remaining_preview(used, current_skeins):
 @callback(
     Output("edit-stash-status-msg", "children", allow_duplicate=True),
     Output("edit-stash-modal", "is_open", allow_duplicate=True),
+    Output("stash-update-trigger", "data"),
     Input("edit-stash-save-btn", "n_clicks"),
     State("edit-stash-id-store", "data"),
     State("edit-stash-modal-tabs", "active_tab"),
@@ -165,17 +171,22 @@ def update_remaining_preview(used, current_skeins):
     State("edit-stash-used-skeins", "value"),
     State("edit-stash-current-skeins-store", "data"),
     State("edit-stash-usage-date", "date"),
+    State("stash-update-trigger", "data"),
     prevent_initial_call=True,
 )
 def save_stash_edit(n_clicks, stash_id, active_tab,
                     colorway, dyelot, location, notes, skeins, status_id,
-                    used_skeins, current_skeins, usage_date):
+                    used_skeins, current_skeins, usage_date, trigger_data):
     if not n_clicks or not stash_id:
         raise PreventUpdate
-    return CONTROLLER.handle_save_edit(
+    res_msg, is_open = CONTROLLER.handle_save_edit(
         stash_id, active_tab, colorway, dyelot, location, notes,
         skeins, status_id, used_skeins, current_skeins, usage_date
     )
+    new_trigger_data = trigger_data
+    if not is_open:
+        new_trigger_data = (trigger_data or 0) + 1
+    return res_msg, is_open, new_trigger_data
 
 
 @callback(

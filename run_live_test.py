@@ -4,6 +4,7 @@ import sys
 
 def test_live():
     with sync_playwright() as p:
+        browser = None
         try:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
@@ -25,10 +26,11 @@ def test_live():
             accordion_headers = page.locator(".accordion-header")
             if accordion_headers.count() > 0:
                 accordion_headers.first.click()
-                page.wait_for_selector("input[id*='stash-skeins']", timeout=5000)
-                page.fill("input[id*='stash-skeins']", "2")
-                page.click("button[id*='stash-submit-btn']")
-                status_msg = page.locator("div[id*='stash-status-msg']")
+                first_item = page.locator(".accordion-item").first
+                first_item.locator("input[id*='stash-skeins']").wait_for(state="visible")
+                first_item.locator("input[id*='stash-skeins']").fill("2")
+                first_item.locator("button[id*='stash-submit-btn']").click()
+                status_msg = first_item.locator("div[id*='stash-status-msg']")
                 page.wait_for_function("el => el.textContent !== ''", arg=status_msg.element_handle())
                 print(f"Stash add response: {status_msg.inner_text()}")
             else:
@@ -37,7 +39,7 @@ def test_live():
             # Test 3: Analytics
             print("Testing Analytics tab...")
             page.click("text=Stash Analytics")
-            page.wait_for_selector(".js-plotly-plot", timeout=15000)
+            page.wait_for_selector("text=Cumulative Stashed Yardage Over Time", timeout=15000)
             print("Analytics graph rendered.")
             
             print("All core functionality tested successfully.")
@@ -45,7 +47,8 @@ def test_live():
             print(f"Error during browser tests: {e}")
             sys.exit(1)
         finally:
-            browser.close()
+            if browser:
+                browser.close()
 
 if __name__ == "__main__":
     test_live()

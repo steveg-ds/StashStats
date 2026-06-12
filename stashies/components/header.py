@@ -23,7 +23,7 @@ class Header(BaseComponent):
             dbc.Row(
                 [
                     html.Img(
-                        src="../static/Images/logo_color.png",
+                        src="/static/Images/logo_color.png",
                         style=dict(width="75%", height="125px"),
                     ),
                     html.Hr(style={"margin": "20px 0"}),
@@ -31,6 +31,32 @@ class Header(BaseComponent):
                 className="justify-content-center align-items-center",
             )
         ]
+
+    def update_layout(self, username: str = None) -> None:
+        """Update header container children with the username greeting if present."""
+        logo_row = dbc.Row(
+            [
+                html.Img(
+                    src="/static/Images/logo_color.png",
+                    style=dict(width="75%", height="125px"),
+                ),
+            ],
+            className="justify-content-center align-items-center",
+        )
+        
+        children = [logo_row]
+        
+        if username:
+            greeting_row = dbc.Row(
+                [
+                    html.H5(f"Hello {username}!", className="text-info text-center mt-2", id="header-greeting"),
+                ],
+                className="justify-content-center align-items-center",
+            )
+            children.append(greeting_row)
+            
+        children.append(html.Hr(style={"margin": "20px 0"}))
+        self.container.children = children
 
     def __post_init__(self, *args: Any, **kwargs: Any):
         """Calls parent __post_init__ to construct the header container."""

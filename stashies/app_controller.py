@@ -73,6 +73,8 @@ class AppController(Base):
         Build the top-level Dash layout with tabbed navigation.
         - output: List containing the header container and a tabbed panel with Personal Stash, Stash Analytics, and Yarn Search tabs.
         """
+        username = self.MODEL.get_current_username()
+        self.HEADER.update_layout(username)
         tabs_layout = html.Div(
             [
                 dcc.Tabs(
@@ -195,7 +197,7 @@ class AppController(Base):
                 )
                 accordion_items.append(item)
                 
-            return dbc.Col(dbc.Accordion(accordion_items), width=12) # modified width for mobile-friendly search results wrapper width
+            return dbc.Col(dbc.Accordion(accordion_items, start_collapsed=True), width=12) # modified width for mobile-friendly search results wrapper width
         else:
             self.LOGGER.error(f'Query: {query}, No Results Found')
             return html.Div("No results found.")
@@ -492,7 +494,7 @@ class AppController(Base):
         store_data_list: list,
         btn_ids: list,
         triggered_id: str,
-    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str]:
+    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str, Any]:
         """
         Handle opening the edit modal and loading the correct initial state.
         - Input
@@ -507,24 +509,32 @@ class AppController(Base):
         from dash import no_update
         
         if "edit-stash-cancel-btn" in triggered_id:
-            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat(), no_update
 
         try:
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
         except Exception:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return (no_update,) * 14
 
         sd = None
+        clicks = None
         for i, btn_id in enumerate(btn_ids or []):
-            if str(btn_id.get("index", "")) == str(btn_index) and i < len(store_data_list):
-                sd = store_data_list[i]
+            if str(btn_id.get("index", "")) == str(btn_index):
+                if i < len(store_data_list):
+                    sd = store_data_list[i]
+                if i < len(edit_clicks):
+                    clicks = edit_clicks[i]
                 break
 
+        if not clicks:
+            return (no_update,) * 14
+
         if not sd:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat()
+            return (no_update,) * 14
 
         current_skeins = sd.get("skeins") or 0
+        yarn_name = sd.get("name") or "Unnamed Yarn"
         return (
             True,
             sd.get("id"),
@@ -539,6 +549,7 @@ class AppController(Base):
             None,
             "modal-tab-details",
             datetime.date.today().isoformat(),
+            f"edit entry: {yarn_name}",
         )
 
     def render_projects_tab_layout(self) -> html.Div:

@@ -1,35 +1,20 @@
-version: '3.8'
 
 services:
   web:
     build: .
     ports:
       - "8050:8050"
+    volumes:
+      - ./data:/app/data
     environment:
       - API_USERNAME=${API_USERNAME}
       - API_KEY=${API_KEY}
       - RAVELRY_USERNAME=${RAVELRY_USERNAME}
-      - DATABASE_URL=postgresql://stashuser:stashpassword@db:5432/stashstats
       - REDIS_URL=redis://cache:6379/0
+      - SQLITE_DB_PATH=/app/data/stash.db
     depends_on:
-      db:
-        condition: service_healthy
       cache:
         condition: service_started
-
-  db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=stashuser
-      - POSTGRES_PASSWORD=stashpassword
-      - POSTGRES_DB=stashstats
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stashuser -d stashstats"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   cache:
     image: redis:7-alpine
@@ -37,5 +22,4 @@ services:
       - redisdata:/data
 
 volumes:
-  pgdata:
   redisdata:
