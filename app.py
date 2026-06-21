@@ -1,4 +1,5 @@
 import json
+import os
 from dash import (
     Dash,
     Input,
@@ -21,7 +22,10 @@ from stashies.utils import create_logger
 
 load_dotenv(override=True)
 
-LOGGER = create_logger(logger_name='AppLogger', log_file='dev_changes.log')
+LOGGER = create_logger(
+    logger_name='AppLogger',
+    log_file='dev_changes.log' if os.getenv("DEV_LOGGING") == "1" else None
+)
 
 app = Dash(
     __name__,
@@ -169,6 +173,7 @@ def toggle_yarn_collapse(n_clicks, is_open):
     Output("edit-stash-usage-date", "date"),
     Output("edit-stash-modal-title", "children"),
     Output("edit-stash-history-table", "children"),
+    Output("edit-stash-original-info", "children"),
     Input({"type": "stash-edit-btn", "index": ALL}, "n_clicks"),
     Input("edit-stash-cancel-btn", "n_clicks"),
     State({"type": "stash-data-store", "index": ALL}, "data"),
@@ -261,6 +266,43 @@ def load_projects_list(tab_content, tab_value):
     if tab_value != "tab-projects" or not tab_content:
         raise PreventUpdate
     return CONTROLLER.render_projects_list()
+
+
+@callback(
+    Output("edit-stash-delete-confirm", "displayed"),
+    Input("edit-stash-delete-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def trigger_delete_confirm(n_clicks):
+    if not n_clicks:
+        raise PreventUpdate
+    return True
+
+
+@callback(
+    Output("edit-stash-status-msg", "children", allow_duplicate=True),
+    Output("edit-stash-modal", "is_open", allow_duplicate=True),
+    Output("stash-update-trigger", "data", allow_duplicate=True),
+    Input("edit-stash-delete-confirm", "submit_n_clicks"),
+    State("edit-stash-id-store", "data"),
+    State("stash-update-trigger", "data"),
+    prevent_initial_call=True,
+)
+def handle_delete_confirm_submit(submit_n_clicks, stash_id, trigger_data):
+    if not submit_n_clicks or not stash_id:
+        raise PreventUpdate
+    
+    actual_id = stash_id.get("id") if isinstance(stash_id, dict) else stash_id
+    stash_type = stash_id.get("type", "yarn") if isinstance(stash_id, dict) else "yarn"
+    
+    res_msg, is_open = CONTROLLER.handle_delete_stash(actual_id, stash_type)
+    
+    new_trigger_data = trigger_data
+    if not is_open:
+        new_trigger_data = (trigger_data or 0) + 1
+        
+    return res_msg, is_open, new_trigger_data
+
 
 
 

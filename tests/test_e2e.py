@@ -732,3 +732,24 @@ def test_stash_edit_modal_flow_thread(dash_thread_server):
             assert last_post["notes"] == "Used some for a hat"
 
             browser.close()
+
+
+def test_delete_stash_flow():
+    import stashies.app_controller
+    from unittest.mock import patch, MagicMock
+    
+    with patch("app.CONTROLLER.handle_delete_stash") as mock_delete:
+        mock_delete.return_value = ("Entry deleted successfully.", False)
+        
+        from app import handle_delete_confirm_submit
+        
+        res_msg, is_open, new_trigger = handle_delete_confirm_submit(
+            submit_n_clicks=1,
+            stash_id={"id": 123, "name": "Yarn A", "type": "yarn"},
+            trigger_data=0
+        )
+        assert res_msg == "Entry deleted successfully."
+        assert is_open is False
+        assert new_trigger == 1
+        mock_delete.assert_called_once_with(123, "yarn")
+
