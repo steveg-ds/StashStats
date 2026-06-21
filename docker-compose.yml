@@ -2,11 +2,12 @@
 services:
   web:
     build: .
+    user: "${UID:-1000}:${GID:-1000}"
     command: gunicorn -b 0.0.0.0:8050 --workers 1 --threads 4 --timeout 120 --capture-output --log-level debug --access-logfile - --reload app:server
     ports:
       - "8050:8050"
     volumes:
-      - .:/app
+      - .:/app:z
     environment:
       - API_USERNAME=${API_USERNAME}
       - API_KEY=${API_KEY}
@@ -19,8 +20,10 @@ services:
 
   cache:
     image: redis:7-alpine
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - redisdata:/data
 
 volumes:
   redisdata:
+
