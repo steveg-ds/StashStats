@@ -156,8 +156,9 @@ class EditModal(BaseComponent):
                                                     [
                                                         html.P(
                                                             "Enter how much yarn you used. The remaining amount will be saved to Ravelry.",
-                                                            className="text-muted small mt-3 mb-3"
+                                                            className="text-muted small mt-3 mb-2"
                                                         ),
+                                                        html.Div(id="edit-stash-original-info", className="text-info small mb-3"),
                                                         dbc.Label("Skeins Used"),
                                                         dbc.InputGroup(
                                                             [
@@ -203,10 +204,15 @@ class EditModal(BaseComponent):
                             active_tab="modal-tab-details",
                         ),
                         html.Div(id="edit-stash-status-msg", className="text-info small mt-3"),
+                        dcc.ConfirmDialog(
+                            id="edit-stash-delete-confirm",
+                            message="Are you sure you want to permanently delete this stash entry?"
+                        ),
                     ]
                 ),
                 dbc.ModalFooter(
                     [
+                        dbc.Button("Delete Entry", id="edit-stash-delete-btn", color="danger", className="me-auto w-100 w-sm-auto mb-2 mb-sm-0"),
                         dbc.Button("Save Changes", id="edit-stash-save-btn", color="success", className="me-2 w-100 w-sm-auto mb-2 mb-sm-0"),
                         dbc.Button("Cancel", id="edit-stash-cancel-btn", color="secondary", outline=True, className="w-100 w-sm-auto"),
                     ],
