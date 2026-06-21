@@ -6,7 +6,7 @@ def test_live():
     with sync_playwright() as p:
         browser = None
         try:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, slow_mo=100)
             page = browser.new_page()
             
             print("Navigating to app...")

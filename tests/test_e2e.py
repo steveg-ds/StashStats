@@ -133,7 +133,7 @@ def test_stash_yarn_flow_thread(dash_thread_server):
 
     with patch("requests.get", side_effect=mock_get), patch("requests.post", side_effect=mock_post):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, slow_mo=100)
             page = browser.new_page()
             
             # Navigate to application
@@ -272,7 +272,7 @@ def test_stash_analytics_tab_thread(dash_thread_server):
 
     with patch("requests.get", side_effect=mock_get):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, slow_mo=100)
             page = browser.new_page()
             
             page.goto(dash_thread_server)
@@ -410,7 +410,7 @@ def test_new_tabs_flow(dash_thread_server):
          patch("requests.post", side_effect=mock_post), \
          patch("requests.delete", side_effect=mock_delete):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, slow_mo=100)
             page = browser.new_page()
             
             page.goto(dash_thread_server)
@@ -584,7 +584,7 @@ def test_stash_pagination_and_sorting(dash_thread_server):
 
     with patch("requests.get", side_effect=mock_get):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, slow_mo=100)
             page = browser.new_page()
             page.goto(dash_thread_server)
             page.wait_for_load_state("networkidle")
