@@ -50,11 +50,12 @@ app.layout = serve_layout
     Input("search-button", "n_clicks"),
     State("search-query", "value"),
     State("search-sort", "value"),
+    State("search-category", "value"),
 )
-def handle_search(n_clicks, query, sort):
+def handle_search(n_clicks, query, sort, category):
     if not query:
         raise PreventUpdate
-    return CONTROLLER.search_yarn(query=query, sort=sort)
+    return CONTROLLER.search_yarn(query=query, sort=sort, category=category)
 
 
 @callback(
@@ -227,8 +228,9 @@ def save_stash_edit(n_clicks, stash_id, active_tab,
     # Validates parameters/inputs by checking that save button was clicked and stash_id exists.
     if not n_clicks or not stash_id:
         raise PreventUpdate
+    actual_id = stash_id.get("id") if isinstance(stash_id, dict) else stash_id
     res_msg, is_open = CONTROLLER.handle_save_edit(
-        stash_id, active_tab, colorway, dyelot, location, notes,
+        actual_id, active_tab, colorway, dyelot, location, notes,
         skeins, status_id, used_skeins, current_skeins, usage_date
     )
     # Cache trigger incrementation:

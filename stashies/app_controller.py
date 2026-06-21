@@ -136,12 +136,14 @@ class AppController(Base):
         self,
         query: str,
         sort: str = "best",
+        category: str = None,
     ) -> dbc.Col:
         """
         Execute a yarn search and render results as an accordion.
         - Input
             - query (str): Search keyword(s).
             - sort (str): Sort order. Defaults to 'best'.
+            - category (str): Optional category filter.
         - output: dbc.Col with accordion of results, or html.Div('No results found.').
         """
         sort_map = {
@@ -150,7 +152,7 @@ class AppController(Base):
             "most_projects": "projects"
         }
         api_sort = sort_map.get(sort, sort)
-        yarns = self.MODEL.search_yarn(query=query, sort=api_sort)
+        yarns = self.MODEL.search_yarn(query=query, sort=api_sort, category=category)
 
         if yarns is not None:
             self.LOGGER.debug(f"Query: {query}, # of Yarns Found: {len(yarns)}")
@@ -703,14 +705,17 @@ class AppController(Base):
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
         except Exception:
-            return (no_update,) * 15
+            return (no_update,) * 14
 
         sd = None
+        for data in (store_data_list or []):
+            if data and str(data.get("id")) == str(btn_index):
+                sd = data
+                break
+
         clicks = None
         for i, btn_id in enumerate(btn_ids or []):
             if str(btn_id.get("index", "")) == str(btn_index):
-                if i < len(store_data_list):
-                    sd = store_data_list[i]
                 if i < len(edit_clicks):
                     clicks = edit_clicks[i]
                 break
@@ -726,7 +731,7 @@ class AppController(Base):
         history_table = self.build_history_table(sd.get("id"))
         return (
             True,
-            sd.get("id"),
+            {"id": sd.get("id"), "name": yarn_name},
             current_skeins,
             sd.get("colorway") or "",
             sd.get("dye_lot") or "",
@@ -738,7 +743,7 @@ class AppController(Base):
             None,
             "modal-tab-details",
             datetime.date.today().isoformat(),
-            f"Edit Stash Entry: {yarn_name}",
+            f"edit entry: {yarn_name}",
             history_table,
         )
 

@@ -94,11 +94,16 @@ class Model(Base):
         query: str,
         sort: str = "best",
         page_size: int = 10,
+        category: str = None,
     ) -> Union[List['Yarn'], None]:
         """
         Search Ravelry yarn database by keyword.
         """
+        if sort == "best_match":
+            sort = "best"
         params = {"query": query, "page": 1, "page_size": page_size, "sort": sort}
+        if category:
+            params["category"] = category
 
         data: Optional[Dict[str, Any]] = self.REQ.get_request(
             endpoint="yarns/search.json", params=params
@@ -289,6 +294,9 @@ class Model(Base):
             bulk_dirty_orig = DBManager.get_bulk_original_values(dirty_ids)
             bulk_dirty_history = DBManager.get_bulk_stash_history(dirty_ids)
 
+            import threading
+            rate_limit = threading.Semaphore(1)
+
             # Fetch uncached details concurrently, with a 50ms sleep inside the worker to satisfy Ravelry rate limits.
             def fetch_detail(item):
                 import time
@@ -296,7 +304,9 @@ class Model(Base):
                 is_fiber = item.get("type") == "fiber"
                 if not s_id:
                     return None, None
-                time.sleep(0.05)  # rate limit: ~20 req/s per worker
+                with rate_limit:
+                    import os
+                    time.sleep(0.001 if os.getenv("PYTEST_CURRENT_TEST") else 0.2)
                 if is_fiber:
                     detail_endpoint = f"people/{username}/fiber/{s_id}.json"
                 else:
@@ -377,10 +387,10 @@ class Model(Base):
                     if old_totals:
                         history_events = bulk_dirty_history.get(s_id_str) or []
                         sum_history = {
-                            "yards": sum(event["yards"] for event in history_events),
-                            "meters": sum(event["meters"] for event in history_events),
-                            "skeins": sum(event["skeins"] for event in history_events),
-                            "grams": sum(event["grams"] for event in history_events),
+                            "yards": sum(float(event.get("yards") or 0) for event in history_events),
+                            "meters": sum(float(event.get("meters") or 0) for event in history_events),
+                            "skeins": sum(float(event.get("skeins") or 0) for event in history_events),
+                            "grams": sum(float(event.get("grams") or 0) for event in history_events),
                         }
                         previous_totals = {
                             "yards": old_totals["yards"] + sum_history["yards"],
@@ -481,9 +491,11 @@ class Model(Base):
         Post a new stash entry to the user's Ravelry stash.
         """
         import os
+        from .dataclasses import StashPost
         username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/create.json"
-        result = self.REQ.post_request(endpoint=endpoint, data=stash_data)
+        payload = StashPost(**stash_data).model_dump(exclude_none=True)
+        result = self.REQ.post_request(endpoint=endpoint, data=payload)
         
         r = self.get_redis()
         if r:
@@ -497,10 +509,12 @@ class Model(Base):
     def update_stash(self, stash_id: Union[str, int], stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Update a stash entry via POST and invalidate local cache for that entry."""
         import os
+        from .dataclasses import StashPost
 
         username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/{stash_id}.json"
-        result = self.REQ.post_request(endpoint=endpoint, data=stash_data)
+        payload = StashPost(**stash_data).model_dump(exclude_none=True)
+        result = self.REQ.post_request(endpoint=endpoint, data=payload)
 
         # Invalidate Redis keys for stash_detail:{stash_id} and stash_list:{username} on write success.
         r = self.get_redis()
@@ -744,17 +758,21 @@ class Model(Base):
                     })
 
             for event in s.get("history") or []:
+                date_val = event.get("date")
+                if not date_val:
+                    self.LOGGER.warning(f"Skipping history event missing date: {event}")
+                    continue
                 try:
                     data.append({
-                        "date": pd.to_datetime(event["date"], format="%Y-%m-%d"),
+                        "date": pd.to_datetime(date_val, format="%Y-%m-%d"),
                         "category": category,
-                        "yards": float(event["yards"]),
-                        "meters": float(event["meters"]),
-                        "skeins": float(event["skeins"]),
-                        "grams": float(event["grams"]),
+                        "yards": float(event.get("yards") or 0),
+                        "meters": float(event.get("meters") or 0),
+                        "skeins": float(event.get("skeins") or 0),
+                        "grams": float(event.get("grams") or 0),
                     })
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.LOGGER.warning(f"Skipping malformed history event: {e}")
 
         if not data:
             return pd.DataFrame(columns=["date", "category", "yards", "meters", "skeins", "grams",
@@ -910,16 +928,20 @@ class Model(Base):
                     })
 
             for event in s.get("history") or []:
+                date_val = event.get("date")
+                if not date_val:
+                    self.LOGGER.warning(f"Skipping history event missing date: {event}")
+                    continue
                 try:
                     data.append({
-                        "date": pd.to_datetime(event["date"], format="%Y-%m-%d"),
-                        "yards": float(event["yards"]),
-                        "meters": float(event["meters"]),
-                        "skeins": float(event["skeins"]),
-                        "grams": float(event["grams"]),
+                        "date": pd.to_datetime(date_val, format="%Y-%m-%d"),
+                        "yards": float(event.get("yards") or 0),
+                        "meters": float(event.get("meters") or 0),
+                        "skeins": float(event.get("skeins") or 0),
+                        "grams": float(event.get("grams") or 0),
                     })
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.LOGGER.warning(f"Skipping malformed history event: {e}")
 
         if not data:
             return pd.DataFrame(columns=["date", "yards", "meters", "skeins", "grams",
