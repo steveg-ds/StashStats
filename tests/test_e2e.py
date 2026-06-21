@@ -614,3 +614,121 @@ def test_stash_pagination_and_sorting(dash_thread_server):
             assert page.locator("#stash-list-container .card").count() == 10
 
             browser.close()
+
+
+def test_stash_edit_modal_flow_thread(dash_thread_server):
+    import requests
+    from unittest.mock import patch, MagicMock
+    from playwright.sync_api import sync_playwright
+
+    original_get = requests.get
+    original_post = requests.post
+
+    captured_posts = []
+
+    def mock_get(url, *args, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        if "stash/unified/list.json" in url:
+            mock_resp.json.return_value = {
+                "unified_stash": [
+                    {
+                        "stash": {
+                            "id": 101,
+                            "name": "Super Wool",
+                            "created_at": "2026/05/01 12:00:00 -0400",
+                            "updated_at": "2026/05/01 12:00:00 -0400",
+                            "yarn": {
+                                "id": 123,
+                                "name": "Super Wool",
+                                "yarn_company_name": "Cave Company",
+                                "discontinued": False,
+                                "grams": 100,
+                                "yardage": 220,
+                                "machine_washable": True,
+                                "photos": [{"medium_url": "https://placehold.co/150"}]
+                            },
+                            "colorway_name": "Cave Red",
+                            "dye_lot": "Batch A",
+                            "location": "Living Room Box",
+                            "notes": "Purchased during sale",
+                            "packs": [{"skeins": 2.0}]
+                        }
+                    }
+                ]
+            }
+            return mock_resp
+        elif "stash/101.json" in url:
+            mock_resp.json.return_value = {
+                "stash": {
+                    "id": 101,
+                    "updated_at": "2026/05/01 12:00:00 -0400",
+                    "packs": [{"skeins": 2.0, "total_yards": 440.0}]
+                }
+            }
+            return mock_resp
+        elif "current_user.json" in url:
+            mock_resp.json.return_value = {"user": {"username": "test_user"}}
+            return mock_resp
+        return original_get(url, *args, **kwargs)
+
+    def mock_post(url, *args, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        if "stash/101.json" in url:
+            data = kwargs.get("json")
+            captured_posts.append(data)
+            mock_resp.json.return_value = {
+                "stash": {
+                    "id": 101,
+                    "updated_at": "2026/05/02 12:00:00 -0400",
+                    "packs": [{"skeins": 2.0, "total_yards": 440.0}]
+                }
+            }
+            return mock_resp
+        return original_post(url, *args, **kwargs)
+
+    with patch("requests.get", side_effect=mock_get), patch("requests.post", side_effect=mock_post):
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, slow_mo=100)
+            page = browser.new_page()
+            page.goto(dash_thread_server)
+            page.wait_for_load_state("networkidle")
+
+            page.click("text=Personal Stash")
+            page.wait_for_selector("#stash-list-container")
+
+            assert "Super Wool" in page.content()
+
+            # Click the collapse header to expand and show colorway rows
+            page.click("[id*='yarn-collapse-btn']")
+
+            # Click the edit button
+            page.click("button[id*='stash-edit-btn'][id*='101']")
+
+            # Wait for edit modal to open
+            page.wait_for_selector("#edit-stash-modal", state="visible")
+
+            # Check initial values in inputs
+            assert page.locator("#edit-stash-colorway").input_value() == "Cave Red"
+            assert page.locator("#edit-stash-dyelot").input_value() == "Batch A"
+            assert page.locator("#edit-stash-location").input_value() == "Living Room Box"
+            assert page.locator("#edit-stash-notes").input_value() == "Purchased during sale"
+
+            # Modify some fields
+            page.fill("#edit-stash-location", "New Shelf")
+            page.fill("#edit-stash-notes", "Used some for a hat")
+
+            # Click save changes
+            page.click("#edit-stash-save-btn")
+
+            # Wait for edit modal to close
+            page.wait_for_selector("#edit-stash-modal", state="hidden")
+
+            # Verify POST was executed with correct payload
+            assert len(captured_posts) > 0
+            last_post = captured_posts[-1]
+            assert last_post["location"] == "New Shelf"
+            assert last_post["notes"] == "Used some for a hat"
+
+            browser.close()

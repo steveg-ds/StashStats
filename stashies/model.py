@@ -527,6 +527,11 @@ class Model(Base):
 
         return result
 
+    def get_stash_history(self, stash_id: Union[str, int]) -> List[Dict[str, Any]]:
+        """Fetch history of changes for a specific stash entry from DB."""
+        from .db import DBManager
+        return DBManager.get_stash_history(str(stash_id)) or []
+
     def get_full_yarn(self, yarn_id: Union[str, int]) -> Optional['Yarn']:
         """
         Fetch complete yarn detail including colorways by Ravelry yarn ID.
