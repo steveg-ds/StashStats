@@ -641,6 +641,22 @@ class AppController(Base):
                 self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}")
                 return f"Error: {e}", True
 
+    def handle_delete_stash(self, stash_id: Union[str, int], stash_type: str = "yarn") -> Tuple[str, bool]:
+        """
+        Delete a stash entry and return status and modal visibility.
+        """
+        try:
+            success = self.MODEL.delete_stash(stash_id, stash_type)
+            if success:
+                self.LOGGER.info(f"[WRITE] stash_id={stash_id} type={stash_type} | deleted successfully")
+                return "Entry deleted successfully.", False
+            else:
+                self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} type={stash_type} | delete failed")
+                return "Failed to delete entry.", True
+        except Exception as e:
+            self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} type={stash_type} | {e}")
+            return f"Error: {e}", True
+
     def build_history_table(self, stash_id: str) -> html.Div:
         history = self.MODEL.get_stash_history(stash_id)
         if not history:
@@ -684,7 +700,7 @@ class AppController(Base):
         store_data_list: list,
         btn_ids: list,
         triggered_id: str,
-    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str, Any, Any]:
+    ) -> Tuple[bool, Any, Any, Any, Any, Any, Any, Any, Any, str, Any, str, str, Any, Any, Any]:
         """
         Handle opening the edit modal and loading the correct initial state.
         - Input
@@ -699,13 +715,13 @@ class AppController(Base):
         from dash import no_update
         
         if "edit-stash-cancel-btn" in triggered_id:
-            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat(), no_update, None
+            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, "", None, "modal-tab-details", datetime.date.today().isoformat(), no_update, None, ""
 
         try:
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
         except Exception:
-            return (no_update,) * 14
+            return (no_update,) * 16
 
         sd = None
         for data in (store_data_list or []):
@@ -721,17 +737,36 @@ class AppController(Base):
                 break
 
         if not clicks:
-            return (no_update,) * 15
+            return (no_update,) * 16
 
         if not sd:
-            return (no_update,) * 15
+            return (no_update,) * 16
 
         current_skeins = sd.get("skeins") or 0
         yarn_name = sd.get("name") or "Unnamed Yarn"
         history_table = self.build_history_table(sd.get("id"))
+
+        created_at_raw = sd.get("created_at")
+        orig_date = "Unknown Date"
+        if created_at_raw:
+            try:
+                orig_date = created_at_raw.split(" ")[0].replace("/", "-")
+            except Exception:
+                orig_date = str(created_at_raw)
+
+        orig_vals = sd.get("original_values") or {}
+        orig_sk = orig_vals.get("skeins", 0.0)
+        orig_yds = orig_vals.get("yards", 0.0)
+        orig_g = orig_vals.get("grams", 0.0)
+
+        if sd.get("type") == "fiber":
+            orig_info = f"Originally stashed: {orig_date} ({orig_g:,.0f} g)"
+        else:
+            orig_info = f"Originally stashed: {orig_date} ({orig_sk:.1f} sk / {orig_yds:,.0f} yds / {orig_g:,.0f} g)"
+
         return (
             True,
-            {"id": sd.get("id"), "name": yarn_name},
+            {"id": sd.get("id"), "name": yarn_name, "type": sd.get("type")},
             current_skeins,
             sd.get("colorway") or "",
             sd.get("dye_lot") or "",
@@ -745,6 +780,7 @@ class AppController(Base):
             datetime.date.today().isoformat(),
             f"edit entry: {yarn_name}",
             history_table,
+            orig_info,
         )
 
     def render_projects_tab_layout(self) -> html.Div:

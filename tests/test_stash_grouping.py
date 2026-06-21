@@ -82,13 +82,13 @@ def test_toggle_edit_modal_robust_matching():
         edit_clicks=[1],
         cancel_click=None,
         store_data_list=[
-            {"id": 123, "skeins": 5.0, "name": "Soft Wool", "colorway": "Red", "dye_lot": "A", "location": "Box", "notes": "notes", "status_id": 1}
+            {"id": 123, "skeins": 5.0, "name": "Soft Wool", "colorway": "Red", "dye_lot": "A", "location": "Box", "notes": "notes", "status_id": 1, "type": "yarn"}
         ],
         btn_ids=[{"index": 123}],
         triggered_id='{"index": 123, "type": "edit-btn"}.n_clicks'
     )
     assert res[0] is True
-    assert res[1] == {"id": 123, "name": "Soft Wool"}
+    assert res[1] == {"id": 123, "name": "Soft Wool", "type": "yarn"}
     assert res[2] == 5.0
     assert res[3] == "Red"
     assert res[4] == "A"
@@ -104,13 +104,13 @@ def test_toggle_edit_modal_robust_matching():
         edit_clicks=[1],
         cancel_click=None,
         store_data_list=[
-            {"id": "123", "skeins": 5.0, "name": "Soft Wool", "colorway": "Red", "dye_lot": "A", "location": "Box", "notes": "notes", "status_id": 1}
+            {"id": "123", "skeins": 5.0, "name": "Soft Wool", "colorway": "Red", "dye_lot": "A", "location": "Box", "notes": "notes", "status_id": 1, "type": "yarn"}
         ],
         btn_ids=[{"index": 123}],
         triggered_id='{"index": 123, "type": "edit-btn"}.n_clicks'
     )
     assert res[0] is True
-    assert res[1] == {"id": "123", "name": "Soft Wool"}
+    assert res[1] == {"id": "123", "name": "Soft Wool", "type": "yarn"}
 
     # Test case 4: Triggered ID doesn't parse
     res = controller.toggle_edit_modal(
@@ -182,6 +182,26 @@ def test_delete_components_in_modal_layout():
     delete_btn = next((c for c in footer_children if getattr(c, 'id', None) == "edit-stash-delete-btn"), None)
     assert delete_btn is not None, "edit-stash-delete-btn not found in ModalFooter"
     assert delete_btn.color == "danger"
+
+
+def test_handle_delete_stash():
+    controller = AppController(header_id="h", search_id="s", result_id="r")
+    controller.MODEL = MagicMock()
+    
+    # Mock model's delete_stash return value
+    controller.MODEL.delete_stash.return_value = True
+    msg, is_open = controller.handle_delete_stash(123, "yarn")
+    assert msg == "Entry deleted successfully."
+    assert is_open is False
+    controller.MODEL.delete_stash.assert_called_once_with(123, "yarn")
+
+    # Mock delete failure
+    controller.MODEL.delete_stash.reset_mock()
+    controller.MODEL.delete_stash.return_value = False
+    msg, is_open = controller.handle_delete_stash(123, "yarn")
+    assert msg == "Failed to delete entry."
+    assert is_open is True
+
 
 
 
