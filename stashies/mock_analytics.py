@@ -2,6 +2,7 @@ import datetime
 import numpy as np
 import pandas as pd
 from faker import Faker
+from stashies.utils import YARDS_TO_METERS
 
 def get_mock_analytics_dataframe(days: int = 730) -> pd.DataFrame:
     fake = Faker()
@@ -35,7 +36,7 @@ def get_mock_analytics_dataframe(days: int = 730) -> pd.DataFrame:
             data.append({
                 "date": pd.to_datetime(date),
                 "yards": yardage,
-                "meters": yardage * 0.9144,
+                "meters": yardage * YARDS_TO_METERS,
                 "skeins": float(skeins),
                 "grams": grams
             })
@@ -54,7 +55,7 @@ def get_mock_analytics_dataframe(days: int = 730) -> pd.DataFrame:
             data.append({
                 "date": pd.to_datetime(date),
                 "yards": -yardage,
-                "meters": -yardage * 0.9144,
+                "meters": -yardage * YARDS_TO_METERS,
                 "skeins": -float(skeins),
                 "grams": -grams
             })
@@ -103,7 +104,7 @@ def get_mock_animated_analytics_dataframe(days: int = 730) -> pd.DataFrame:
                 "date": month_start,
                 "category": cat,
                 "yards": yardage,
-                "meters": yardage * 0.9144,
+                "meters": yardage * YARDS_TO_METERS,
                 "skeins": float(skeins),
                 "grams": skeins * 100.0
             })
@@ -121,7 +122,7 @@ def get_mock_animated_analytics_dataframe(days: int = 730) -> pd.DataFrame:
                 "date": month_start,
                 "category": cat,
                 "yards": -yardage,
-                "meters": -yardage * 0.9144,
+                "meters": -yardage * YARDS_TO_METERS,
                 "skeins": -float(skeins),
                 "grams": -skeins * 100.0
             })

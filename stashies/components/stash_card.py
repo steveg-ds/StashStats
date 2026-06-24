@@ -225,6 +225,14 @@ class StashCard(BaseComponent):
                 "notes": s.get("notes") or "",
                 "skeins": sk,
                 "status_id": status_id,
+                "created_at": s.get("created_at"),
+                "original_values": s.get("original_values") or {
+                    "yards": y,
+                    "meters": m,
+                    "skeins": sk,
+                    "grams": g,
+                },
+                "type": s.get("type"),
             }
         )
 

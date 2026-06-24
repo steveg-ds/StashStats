@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Union, Optional
 from .base_req import Req
 from .base import Base
 from .dataclasses import Yarn
+from .utils import YARDS_TO_METERS
 
 
 def get_primary_totals(packs, yarn_info):
@@ -17,7 +18,7 @@ def get_primary_totals(packs, yarn_info):
     """
     yardage = float(yarn_info.get("yardage") or 0)
     grams = float(yarn_info.get("grams") or 0)
-    meters = yardage * 0.9144
+    meters = yardage * YARDS_TO_METERS
     
     y, m, s, g = 0.0, 0.0, 0.0, 0.0
     # Primary packs have no parent; child/add-on packs link back via primary_pack_id
@@ -39,7 +40,7 @@ def get_primary_totals(packs, yarn_info):
             if p_meters is not None:
                 pack_meters = float(p_meters)
             else:
-                pack_meters = pack_yards * 0.9144
+                pack_meters = pack_yards * YARDS_TO_METERS
                 
             p_grams = pack.get("total_grams")
             if p_grams is not None:
@@ -150,6 +151,7 @@ class Model(Base):
                 cached_list = r.get(f"stash_list:{username}")
                 if cached_list:
                     all_stashes = json.loads(cached_list)
+                    self.LOGGER.info(f"Cache HIT stash_list:{username} ({len(all_stashes)} items)")
             except Exception as e:
                 self.LOGGER.error(f"Redis get stash_list failed: {e}")
 
@@ -214,10 +216,12 @@ class Model(Base):
                 if len(result["unified_stash"]) < 100:
                     break
                 page += 1
+            self.LOGGER.info(f"API fetch stash_list:{username} — {len(all_stashes)} items")
             # Cache the serialized JSON stash list in Redis with a TTL of 300 seconds.
             if all_stashes and r:
                 try:
                     r.setex(f"stash_list:{username}", 300, json.dumps(all_stashes))
+                    self.LOGGER.info(f"Cache SET stash_list:{username}")
                 except Exception as e:
                     self.LOGGER.error(f"Redis set stash_list failed: {e}")
             
@@ -244,6 +248,8 @@ class Model(Base):
                 for sid, val in zip(stash_ids, values):
                     if val:
                         cached_vals[sid] = val
+                hit_count = len(cached_vals)
+                self.LOGGER.info(f"Cache HIT stash_details: {hit_count} items")
             except Exception as e:
                 self.LOGGER.error(f"Redis mget failed: {e}")
                 
@@ -326,6 +332,8 @@ class Model(Base):
             max_workers = min(10, len(dirty_items))
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 results = list(executor.map(fetch_detail, dirty_items))
+            fetched = [r for _, r in results if r is not None]
+            self.LOGGER.info(f"API fetched {len(fetched)} stash detail(s)")
 
             # Batch Redis writes via pipeline to batch-write detailed info in one round-trip.
             redis_pipeline = r.pipeline(transaction=False) if r else None
@@ -503,7 +511,10 @@ class Model(Base):
                 r.delete(f"stash_list:{username}")
             except Exception as e:
                 self.LOGGER.error(f"Cache invalidation failed for stash_list:{username} in Redis: {e}")
-                
+
+        if result:
+            result_id = result.get("stash", {}).get("id") if isinstance(result, dict) else None
+            self.LOGGER.info(f"[WRITE OK] create_stash stash_id={result_id}")
         return result
 
     def update_stash(self, stash_id: Union[str, int], stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -525,7 +536,40 @@ class Model(Base):
             except Exception as e:
                 self.LOGGER.error(f"Cache invalidation failed for stash {stash_id} in Redis: {e}")
 
+        if result:
+            self.LOGGER.info(f"[WRITE OK] update_stash stash_id={stash_id}")
         return result
+
+    def delete_stash(self, stash_id: Union[str, int], stash_type: str = "yarn") -> bool:
+        """
+        Delete a stash entry (yarn or fiber) from Ravelry, Redis, and SQLite DB.
+        """
+        import os
+        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        
+        if stash_type == "fiber":
+            endpoint = f"people/{username}/fiber/{stash_id}.json"
+        else:
+            endpoint = f"people/{username}/stash/{stash_id}.json"
+            
+        result = self.REQ.delete_request(endpoint=endpoint)
+        
+        # Cleanup DB
+        from .db import DBManager
+        DBManager.delete_stash_data(str(stash_id))
+        
+        # Invalidate Redis cache
+        r = self.get_redis()
+        if r:
+            try:
+                r.delete(f"stash_detail:{stash_id}")
+                r.delete(f"stash_list:{username}")
+            except Exception as e:
+                self.LOGGER.error(f"Cache invalidation failed for deleted stash {stash_id}: {e}")
+
+        if result is not None:
+            self.LOGGER.info(f"[WRITE OK] delete_stash stash_id={stash_id}")
+        return result is not None
 
     def get_stash_history(self, stash_id: Union[str, int]) -> List[Dict[str, Any]]:
         """Fetch history of changes for a specific stash entry from DB."""
@@ -676,7 +720,7 @@ class Model(Base):
             
             yardage = float(yarn_info.get("yardage") or 0)
             grams = float(yarn_info.get("grams") or 0)
-            meters = yardage * 0.9144
+            meters = yardage * YARDS_TO_METERS
             orig = s.get("original_values")
             packs = s.get("packs") or []
             status_id = s.get("stash_status", {}).get("id")
@@ -698,7 +742,7 @@ class Model(Base):
                     p_yards = pack.get("total_yards")
                     pack_yards = float(p_yards) if p_yards is not None else skeins_val * float(pack.get("yards_per_skein") or yardage or 0)
                     p_meters = pack.get("total_meters")
-                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * 0.9144
+                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * YARDS_TO_METERS
                     p_grams = pack.get("total_grams")
                     pack_grams = float(p_grams) if p_grams is not None else skeins_val * float(pack.get("grams_per_skein") or grams or 0)
 
@@ -728,7 +772,7 @@ class Model(Base):
                     p_yards = pack.get("total_yards")
                     pack_yards = float(p_yards) if p_yards is not None else skeins_val * float(pack.get("yards_per_skein") or yardage or 0)
                     p_meters = pack.get("total_meters")
-                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * 0.9144
+                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * YARDS_TO_METERS
                     p_grams = pack.get("total_grams")
                     pack_grams = float(p_grams) if p_grams is not None else skeins_val * float(pack.get("grams_per_skein") or grams or 0)
 
@@ -846,7 +890,7 @@ class Model(Base):
             yarn_info = s.get("yarn") or {}
             yardage = float(yarn_info.get("yardage") or 0)
             grams = float(yarn_info.get("grams") or 0)
-            meters = yardage * 0.9144
+            meters = yardage * YARDS_TO_METERS
             orig = s.get("original_values")
             packs = s.get("packs") or []
             status_id = s.get("stash_status", {}).get("id")
@@ -869,7 +913,7 @@ class Model(Base):
                     pack_yards = float(p_yards) if p_yards is not None else skeins_val * float(pack.get("yards_per_skein") or yardage or 0)
 
                     p_meters = pack.get("total_meters")
-                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * 0.9144
+                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * YARDS_TO_METERS
 
                     p_grams = pack.get("total_grams")
                     pack_grams = float(p_grams) if p_grams is not None else skeins_val * float(pack.get("grams_per_skein") or grams or 0)
@@ -900,7 +944,7 @@ class Model(Base):
                     pack_yards = float(p_yards) if p_yards is not None else skeins_val * float(pack.get("yards_per_skein") or yardage or 0)
 
                     p_meters = pack.get("total_meters")
-                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * 0.9144
+                    pack_meters = float(p_meters) if p_meters is not None else pack_yards * YARDS_TO_METERS
 
                     p_grams = pack.get("total_grams")
                     pack_grams = float(p_grams) if p_grams is not None else skeins_val * float(pack.get("grams_per_skein") or grams or 0)
