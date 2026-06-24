@@ -1,34 +1,45 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 
 def create_logger(logger_name: str, log_file: str = None) -> logging.Logger:
     """
-    Function to create basic logger
+    Factory for app loggers.
+    - Adds StreamHandler with timestamps if not already configured.
+    - Sets propagate=False to prevent double-output under gunicorn/Dash.
+    - Respects LOG_LEVEL env var (default: DEBUG).
     - Parameters:
-        - logger_name
-        - log_file: optional path to write logs to file
+        - logger_name: hierarchical name, e.g. 'Model', 'AppController'
+        - log_file: optional path for RotatingFileHandler (Docker use)
     """
-
-    # Create or get the logger
     logger = logging.getLogger(logger_name)
 
-    # Only add handlers if this logger has no handlers configured
     if not logger.handlers:
+        level_name = os.getenv("LOG_LEVEL", "DEBUG").upper()
+        level = getattr(logging, level_name, logging.DEBUG)
+
+        formatter = logging.Formatter(
+            "%(asctime)s | %(name)-20s | %(levelname)-8s | %(message)s",
+            datefmt="%H:%M:%S",
+        )
+
         console_handler = logging.StreamHandler()
-        formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
         console_handler.setFormatter(formatter)
+        console_handler.setLevel(level)
         logger.addHandler(console_handler)
 
         if log_file:
             file_formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S"
+                "%(asctime)s | %(name)-20s | %(levelname)-8s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
             )
             fh = RotatingFileHandler(log_file, maxBytes=1_000_000, backupCount=3)
             fh.setFormatter(file_formatter)
+            fh.setLevel(level)
             logger.addHandler(fh)
 
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(level)
+        logger.propagate = False
 
     return logger
