@@ -44,3 +44,16 @@ def test_idempotent_no_duplicate_handlers():
     create_logger(name)
     create_logger(name)
     assert len(logging.getLogger(name).handlers) == 1
+
+
+def test_db_logger_has_handlers():
+    """db.py logger must have at least one handler (not be silent)."""
+    # Importing db triggers module-level logger creation
+    import logging
+    # Clear first so we're not relying on a previous test run
+    logging.getLogger("DBManager").handlers.clear()
+    import importlib
+    import stashies.db as db_mod
+    importlib.reload(db_mod)
+    db_logger = logging.getLogger("DBManager")
+    assert len(db_logger.handlers) >= 1

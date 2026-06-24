@@ -1,9 +1,9 @@
 import os
-import logging
+from stashies.utils.logger_func import create_logger
 import sqlite3
 from typing import Optional
 
-logger = logging.getLogger("stashies.db")
+logger = create_logger("DBManager")
 
 class SQLitePool:
     """
