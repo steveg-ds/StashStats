@@ -233,6 +233,26 @@ class DBManager:
             cls.get_pool().putconn(conn)
 
     @classmethod
+    def delete_stash_data(cls, stash_id: str):
+        """
+        Delete all data related to a stash entry from original_values and stash_history.
+        """
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute("DELETE FROM original_values WHERE stash_id = ?", (str(stash_id),))
+                cur.execute("DELETE FROM stash_history WHERE stash_id = ?", (str(stash_id),))
+                conn.commit()
+                logger.info(f"SQLite database entries deleted for stash_id={stash_id}")
+            finally:
+                cur.close()
+        except Exception as e:
+            logger.error(f"Failed to delete stash data for stash_id={stash_id}: {e}")
+        finally:
+            cls.get_pool().putconn(conn)
+
+    @classmethod
     def get_stash_history(cls, stash_id: str):
         """
         Retrieve chronological history events recorded for a stash ID.
