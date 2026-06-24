@@ -14,6 +14,7 @@ def create_logger(logger_name: str, log_file: str = None) -> logging.Logger:
         - log_file: optional path for RotatingFileHandler (Docker use)
     """
     logger = logging.getLogger(logger_name)
+    logger.propagate = False  # always unconditional — even on cached logger retrieval
 
     if not logger.handlers:
         level_name = os.getenv("LOG_LEVEL", "DEBUG").upper()
@@ -40,6 +41,5 @@ def create_logger(logger_name: str, log_file: str = None) -> logging.Logger:
             logger.addHandler(fh)
 
         logger.setLevel(level)
-        logger.propagate = False
 
     return logger
