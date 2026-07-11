@@ -91,6 +91,19 @@ def handle_search(n_clicks, query, sort, category):
 
 
 @callback(
+    Output({"type": "search-collapse", "index": MATCH}, "is_open"),
+    Input({"type": "search-collapse-btn", "index": MATCH}, "n_clicks"),
+    State({"type": "search-collapse", "index": MATCH}, "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_search_collapse(n_clicks, is_open):
+    if n_clicks:
+        return not is_open
+    return is_open
+
+
+
+@callback(
     Output({"type": "stash-status-msg", "index": MATCH}, "children"),
     Input({"type": "stash-submit-btn", "index": MATCH}, "n_clicks"),
     State({"type": "stash-skeins", "index": MATCH}, "value"),

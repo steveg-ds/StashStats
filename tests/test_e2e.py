@@ -184,18 +184,18 @@ def test_stash_yarn_flow_thread(dash_thread_server):
             # Click search button
             page.click("#search-button")
             
-            # Wait for search results container to populate with accordion items
-            page.wait_for_selector(".accordion-item")
+            # Wait for search results container to populate with card items
+            page.wait_for_selector(".card")
             
             # Verify result item exists
-            accordion_headers = page.locator(".accordion-header")
-            assert accordion_headers.count() > 0
+            card_headers = page.locator(".card-header button")
+            assert card_headers.count() > 0
             
-            # Click the first accordion header to expand it
-            accordion_headers.first.click()
+            # Click the first card header to expand it
+            card_headers.first.click()
             
             # Verify form elements are visible inside the expanded panel
-            first_item = page.locator(".accordion-item").first
+            first_item = page.locator(".card").first
             first_item.locator("input[id*='stash-skeins']").wait_for(state="visible")
             
             # Fill the stash form

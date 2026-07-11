@@ -164,7 +164,7 @@ class AppController(Base):
         if yarns is not None:
             self.LOGGER.debug(f"Query: {query}, # of Yarns Found: {len(yarns)}")
             
-            accordion_items: List[dbc.AccordionItem] = []
+            cards = []
             for y in yarns:
                 full_yarn = self.MODEL.get_full_yarn(y.id)
                 if not full_yarn:
@@ -187,20 +187,36 @@ class AppController(Base):
                     colorways=full_yarn.colorways,
                     photos=photo_urls,
                 )
-                accordion_items.append(item)
                 
-            return dbc.Col(
-                html.Div(
-                    dbc.Accordion(accordion_items, start_collapsed=True),
-                    style={
-                        "--bs-accordion-btn-color": "#fff",
-                        "--bs-accordion-active-color": "#fff",
-                        "--bs-accordion-active-bg": "#2c2c2c",
-                        "--bs-accordion-bg": "#222",
-                    }
-                ),
-                width=12
-            )
+                title = (
+                    f"{full_yarn.company} — {full_yarn.name}"
+                    if full_yarn.company and full_yarn.company.strip()
+                    else full_yarn.name
+                )
+                
+                card = dbc.Card([
+                    dbc.CardHeader(
+                        dbc.Button(
+                            title,
+                            id={"type": "search-collapse-btn", "index": full_yarn.id},
+                            color="link",
+                            class_name="text-start w-100 fw-bold",
+                            style={"color": "#fff", "textDecoration": "none", "fontSize": "1rem"},
+                            n_clicks=0,
+                        ),
+                        style={"backgroundColor": "#303030", "borderColor": "#444"}
+                    ),
+                    dbc.Collapse(
+                        dbc.CardBody(item.children),
+                        id={"type": "search-collapse", "index": full_yarn.id},
+                        is_open=False,
+                    ),
+                ], className="mb-2", style={"borderColor": "#444", "backgroundColor": "#222"})
+                
+                cards.append(card)
+            
+            return dbc.Col(html.Div(cards), width=12)
+
         else:
             self.LOGGER.error(f'Query: {query}, No Results Found')
             return html.Div("No results found.")
