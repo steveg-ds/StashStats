@@ -241,7 +241,7 @@ class SearchResults(BaseComponent):
             dbc.Row(
                 [labels, thumbnail],
             ),
-            title=f"{name} ({company})",
+            title=name,
         )
 
     def __post_init__(self, *args: Any, **kwargs: Any):
