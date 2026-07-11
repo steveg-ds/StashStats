@@ -1,20 +1,5 @@
-/* Force accordion header text to be light/visible in DARKLY theme */
-:root {
-    --bs-accordion-btn-color: #fff;
-    --bs-accordion-color: #fff;
-    --bs-accordion-active-color: #fff;
-}
-
-.accordion-button {
-    color: #fff !important;
-    font-weight: 600 !important;
-}
-.accordion-button.collapsed {
-    color: #fff !important;
-}
+/* Fix accordion active (expanded) text color — DARKLY sets it to #325172 (dark on dark) */
 .accordion-button:not(.collapsed) {
     color: #fff !important;
-}
-.accordion-button::after {
-    filter: invert(1) brightness(2);
+    --bs-accordion-active-color: #fff !important;
 }
