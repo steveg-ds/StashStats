@@ -189,7 +189,18 @@ class AppController(Base):
                 )
                 accordion_items.append(item)
                 
-            return dbc.Col(dbc.Accordion(accordion_items, start_collapsed=True), width=12) # modified width for mobile-friendly search results wrapper width
+            return dbc.Col(
+                html.Div(
+                    dbc.Accordion(accordion_items, start_collapsed=True),
+                    style={
+                        "--bs-accordion-btn-color": "#fff",
+                        "--bs-accordion-active-color": "#fff",
+                        "--bs-accordion-active-bg": "#2c2c2c",
+                        "--bs-accordion-bg": "#222",
+                    }
+                ),
+                width=12
+            )
         else:
             self.LOGGER.error(f'Query: {query}, No Results Found')
             return html.Div("No results found.")
