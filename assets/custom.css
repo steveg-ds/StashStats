@@ -1,0 +1,8 @@
+/* Accordion header text visibility in dark theme */
+.accordion-button {
+    color: #fff !important;
+    font-weight: bold !important;
+}
+.accordion-button.collapsed {
+    color: #fff !important;
+}
