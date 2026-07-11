@@ -37,6 +37,39 @@ app = Dash(
 )
 server = app.server
 
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <style>
+            .accordion-button {
+                color: #fff !important;
+                font-weight: 600 !important;
+            }
+            .accordion-button.collapsed {
+                color: #fff !important;
+            }
+            .accordion-button:not(.collapsed) {
+                color: #fff !important;
+            }
+        </style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
+
 CONTROLLER = AppController(
     header_id="app-header",
     search_id="app-search",
