@@ -46,9 +46,10 @@ app.index_string = '''
         {%favicon%}
         {%css%}
         <style>
-            /* DARKLY sets --bs-accordion-active-color:#325172 (dark blue on dark bg) — override */
+            /* DARKLY expanded accordion: active-bg=#ebeff2 (light), active-color=#325172 (dark) = unreadable */
             .accordion-button:not(.collapsed) {
                 color: #fff !important;
+                background-color: #303030 !important;
             }
         </style>
     </head>
