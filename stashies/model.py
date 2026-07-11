@@ -2,6 +2,7 @@
 from pydantic.dataclasses import dataclass
 from pydantic import Field, ValidationError
 from typing import Dict, Any, List, Union, Optional
+import json
 from .base_req import Req
 from .base import Base
 from .dataclasses import Yarn
@@ -76,8 +77,11 @@ class Model(Base):
     """
     REQ: 'Req' = Field(default_factory=Req)
     _redis: Any = None
+    _memory_cache: Dict[str, str] = Field(default_factory=dict)
 
     def get_redis(self):
+        if self._redis is False:
+            return None
         if self._redis is None:
             import os
             import redis
@@ -85,9 +89,13 @@ class Model(Base):
             if not redis_url:
                 redis_url = "redis://localhost:6379/0"
             try:
-                self._redis = redis.Redis.from_url(redis_url, decode_responses=True)
+                r_client = redis.Redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=0.5)
+                r_client.ping()
+                self._redis = r_client
             except Exception as e:
-                self.LOGGER.error(f"Redis initialization failed: {e}")
+                self.LOGGER.warning(f"Redis unavailable. Caching disabled. ({e})")
+                self._redis = False
+                return None
         return self._redis
 
     def search_yarn(
@@ -262,13 +270,22 @@ class Model(Base):
             updated_at = s.get("updated_at")
             
             cached_val = cached_vals.get(stash_id)
+            in_memory = False
+            if not cached_val and stash_id in self._memory_cache:
+                cached_val = self._memory_cache[stash_id]
+                in_memory = True
+                
             is_cached = False
             
             if cached_val:
                 try:
                     cached_data = json.loads(cached_val)
-                    if cached_data.get("updated_at") == updated_at:
+                    # Trust memory cache if it's equal or chronologically greater/equal than the unified list's updated_at
+                    if cached_data.get("updated_at") == updated_at or (in_memory and cached_data.get("updated_at") >= updated_at):
                         s["packs"] = cached_data.get("packs") or []
+                        for _field in ("colorway_name", "dye_lot", "location", "notes", "stash_status"):
+                            if _field in cached_data:
+                                s[_field] = cached_data[_field]
                         cached_stashes_to_db_fetch.add(stash_id)
                         is_cached = True
                 except Exception as e:
@@ -312,7 +329,7 @@ class Model(Base):
                     return None, None
                 with rate_limit:
                     import os
-                    time.sleep(0.001 if os.getenv("PYTEST_CURRENT_TEST") else 0.2)
+                    time.sleep(0.001 if os.getenv("PYTEST_CURRENT_TEST") else 0.05)
                 if is_fiber:
                     detail_endpoint = f"people/{username}/fiber/{s_id}.json"
                 else:
@@ -329,7 +346,7 @@ class Model(Base):
                 return s_id, None
 
             # Concurrently fetch uncached details using ThreadPoolExecutor.
-            max_workers = min(10, len(dirty_items))
+            max_workers = min(20, len(dirty_items))
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 results = list(executor.map(fetch_detail, dirty_items))
             fetched = [r for _, r in results if r is not None]
@@ -475,7 +492,16 @@ class Model(Base):
                                 })
                             )
                         except Exception as e:
-                            self.LOGGER.error(f"Redis pipeline queue failed for {s_id_str}: {e}")
+                            self.LOGGER.error(f"Redis pipeline queue detail failed for {s_id_str}: {e}")
+                    
+                    cache_item = {
+                        "updated_at": stash_detail.get("updated_at"),
+                        "packs": new_packs,
+                    }
+                    for _field in ("colorway_name", "dye_lot", "location", "notes", "stash_status"):
+                        if _field in stash_detail:
+                            cache_item[_field] = stash_detail[_field]
+                    self._memory_cache[s_id_str] = json.dumps(cache_item)
 
                     item_in_list["packs"] = new_packs
                     # Re-fetch history only if we wrote a new event (otherwise use pre-fetched)
@@ -484,6 +510,12 @@ class Model(Base):
                     else:
                         item_in_list["history"] = bulk_dirty_history.get(s_id_str) or []
                     item_in_list["original_values"] = old_totals
+                    # Propagate editable fields from fresh detail — unified list may be stale
+                    # after a write (Ravelry-side or local cache). Detail is always authoritative.
+                    for _field in ("colorway_name", "dye_lot", "location", "notes",
+                                   "stash_status", "updated_at"):
+                        if _field in stash_detail:
+                            item_in_list[_field] = stash_detail[_field]
 
             # Execute/flush Redis pipeline to batch-write detailed info in one round-trip.
             if redis_pipeline:
@@ -491,6 +523,29 @@ class Model(Base):
                     redis_pipeline.execute()
                 except Exception as e:
                     self.LOGGER.error(f"Redis pipeline execute failed: {e}")
+
+        # Ensure every stash item has original_values and history populated from DB if not already set.
+        # This protects against cases where Redis is disabled and concurrent API fetches fail/time out.
+        missing_ids = []
+        for s in all_stashes:
+            if "id" not in s:
+                continue
+            s_id_str = str(s["id"])
+            if s.get("original_values") is None or s.get("history") is None:
+                missing_ids.append(s_id_str)
+
+        if missing_ids:
+            bulk_missing_orig = DBManager.get_bulk_original_values(missing_ids)
+            bulk_missing_history = DBManager.get_bulk_stash_history(missing_ids)
+            for s in all_stashes:
+                if "id" not in s:
+                    continue
+                s_id_str = str(s["id"])
+                if s_id_str in missing_ids:
+                    if s.get("original_values") is None:
+                        s["original_values"] = bulk_missing_orig.get(s_id_str)
+                    if s.get("history") is None:
+                        s["history"] = bulk_missing_history.get(s_id_str) or []
 
         return all_stashes
 
@@ -538,6 +593,7 @@ class Model(Base):
 
         if result:
             self.LOGGER.info(f"[WRITE OK] update_stash stash_id={stash_id}")
+            self._memory_cache.pop(str(stash_id), None)
         return result
 
     def delete_stash(self, stash_id: Union[str, int], stash_type: str = "yarn") -> bool:
@@ -575,6 +631,42 @@ class Model(Base):
         """Fetch history of changes for a specific stash entry from DB."""
         from .db import DBManager
         return DBManager.get_stash_history(str(stash_id)) or []
+
+    def delete_stash_history_event(self, event_id: int) -> bool:
+        """Delete a single stash history event from local DB and revert quantities on Ravelry."""
+        from .db import DBManager
+        event = DBManager.get_history_event(event_id)
+        if not event:
+            self.LOGGER.warning(f"History event {event_id} not found to delete.")
+            return False
+            
+        stash_id = event["stash_id"]
+        
+        # 1. Delete event from DB
+        success = DBManager.delete_history_event(event_id)
+        if not success:
+            return False
+            
+        # 2. Get current skeins from Ravelry and update
+        try:
+            import os
+            username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+            endpoint = f"people/{username}/stash/{stash_id}.json"
+            detail = self.REQ.get_request(endpoint=endpoint)
+            if detail and "stash" in detail:
+                s_detail = detail["stash"]
+                event_skeins = float(event.get("skeins") or 0.0)
+                packs = s_detail.get("packs") or []
+                if packs:
+                    current_sk = float(packs[0].get("skeins") or 0.0)
+                    new_sk = max(0.0, current_sk - event_skeins)
+                    payload = {"pack": {"skeins": new_sk}}
+                    self.update_stash(stash_id, payload)
+                    self.LOGGER.info(f"Reverted stash {stash_id} skeins: {current_sk} -> {new_sk} after deleting history event {event_id}")
+        except Exception as e:
+            self.LOGGER.error(f"Failed to revert Ravelry quantities after deleting history event {event_id}: {e}")
+            
+        return True
 
     def get_full_yarn(self, yarn_id: Union[str, int]) -> Optional['Yarn']:
         """
@@ -689,11 +781,6 @@ class Model(Base):
             - proj_map (dict): Project ID to datetime mapping.
         - output: pandas.DataFrame containing sorted date-grouped stats and cumulatives by category.
         """
-        import os
-        if os.getenv("DEV_MOCK_ANALYTICS") == "True":
-            from .mock_analytics import get_mock_animated_analytics_dataframe
-            return get_mock_animated_analytics_dataframe()
-
         import pandas as pd
         data = []
         for s in stash_list:
@@ -860,11 +947,7 @@ class Model(Base):
             - proj_map (dict): Project ID to datetime mapping.
         - output: pandas.DataFrame containing sorted date-grouped stats and cumulatives.
         """
-        import os
-        if os.getenv("DEV_MOCK_ANALYTICS") == "True":
-            from .mock_analytics import get_mock_analytics_dataframe
-            return get_mock_analytics_dataframe()
-
+        self.LOGGER.debug(f"get_analytics_dataframe called with {len(stash_list)} stash items")
         import pandas as pd
         data = []
         for s in stash_list:
@@ -1006,6 +1089,7 @@ class Model(Base):
         df["cumulative_skeins"] = df["skeins"].cumsum()
         df["cumulative_grams"] = df["grams"].cumsum()
 
+        self.LOGGER.debug(f"get_analytics_dataframe computed {len(df)} daily aggregated records. Cumulative totals: yards={df['cumulative_yards'].iloc[-1] if not df.empty else 0}, skeins={df['cumulative_skeins'].iloc[-1] if not df.empty else 0}")
         return df
 
     def get_projects_list(self) -> Optional[List[Dict[str, Any]]]:

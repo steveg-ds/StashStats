@@ -39,10 +39,10 @@ class EditModal(BaseComponent):
                         dcc.Store(id="edit-stash-id-store"),
                         dcc.Store(id="edit-stash-current-skeins-store"),
                         dcc.Store(id="stash-update-trigger", data=0),
-                        dbc.Tabs(
+                        dcc.Tabs(
                             [
                                 # Tab 1: Edit Details
-                                dbc.Tab(
+                                dcc.Tab(
                                     dbc.Form(
                                         [
                                             dbc.Row(
@@ -145,10 +145,12 @@ class EditModal(BaseComponent):
                                         ]
                                     ),
                                     label="Edit Details",
-                                    tab_id="modal-tab-details",
+                                    value="modal-tab-details",
+                                    style={"backgroundColor": "#222", "color": "#fff"},
+                                    selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
                                 ),
                                 # Tab 2: Log Usage
-                                dbc.Tab(
+                                dcc.Tab(
                                     [
                                         dbc.Row(
                                             [
@@ -176,10 +178,10 @@ class EditModal(BaseComponent):
                                                         ),
                                                         dbc.Label("Date Used"),
                                                         html.Br(),
-                                                        dcc.DatePickerSingle(
+                                                        dbc.Input(
                                                             id="edit-stash-usage-date",
-                                                            date=datetime.date.today().isoformat(),
-                                                            display_format="YYYY-MM-DD",
+                                                            type="date",
+                                                            value=datetime.date.today().isoformat(),
                                                             style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #555"},
                                                             className="w-100 mb-3"
                                                         ),
@@ -197,11 +199,13 @@ class EditModal(BaseComponent):
                                         )
                                     ],
                                     label="Log Usage",
-                                    tab_id="modal-tab-usage",
+                                    value="modal-tab-usage",
+                                    style={"backgroundColor": "#222", "color": "#fff"},
+                                    selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
                                 ),
                             ],
                             id="edit-stash-modal-tabs",
-                            active_tab="modal-tab-details",
+                            value="modal-tab-details",
                         ),
                         html.Div(id="edit-stash-status-msg", className="text-info small mt-3"),
                         dcc.ConfirmDialog(

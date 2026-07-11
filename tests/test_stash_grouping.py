@@ -203,5 +203,101 @@ def test_handle_delete_stash():
     assert is_open is True
 
 
+def test_get_analytics_dataframe_with_history():
+    from stashies.model import Model
+    model = Model()
+    
+    stash_list = [
+        {
+            "id": 101,
+            "created_at": "2026/05/01 12:00:00 -0400",
+            "updated_at": "2026/05/10 12:00:00 -0400",
+            "yarn": {
+                "id": 123,
+                "name": "Yarn A",
+                "yarn_company_name": "Brand X",
+                "yardage": 200,
+                "grams": 100
+            },
+            "original_values": {
+                "yards": 400.0,
+                "meters": 365.76,
+                "skeins": 2.0,
+                "grams": 200.0
+            },
+            "history": [
+                {
+                    "date": "2026-05-05",
+                    "yards": -100.0,
+                    "meters": -91.44,
+                    "skeins": -0.5,
+                    "grams": -50.0
+                }
+            ],
+            "packs": [{"skeins": 1.5}]
+        }
+    ]
+    
+    df = model.get_analytics_dataframe(stash_list, {})
+    assert not df.empty
+    
+    import pandas as pd
+    row1 = df[df["date"] == pd.to_datetime("2026-05-01")]
+    assert len(row1) == 1
+    assert row1["cumulative_skeins"].iloc[0] == 2.0
+    
+    row2 = df[df["date"] == pd.to_datetime("2026-05-05")]
+    assert len(row2) == 1
+    assert row2["cumulative_skeins"].iloc[0] == 1.5
+
+
+def test_analytics_ols_trendline():
+    import pandas as pd
+    from stashies.components.analytics import AnalyticsComponent
+
+    df = pd.DataFrame({
+        "date": pd.date_range(start="2026-01-01", periods=10, freq="D"),
+        "cumulative_yards": [10.0, 15.0, 18.0, 25.0, 30.0, 32.0, 40.0, 42.0, 48.0, 55.0]
+    })
+
+    analytics = AnalyticsComponent(container_id="test-container")
+    metric_info = analytics.METRIC_MAP["yards"]
+
+    # Build figure with show_trendline=True and show_prediction=True
+    fig = analytics.build_figure(df, metric_info, show_trendline=True, show_prediction=True)
+    
+    # Assert trendline exists and is correct
+    traces = [t for t in fig.data if t.name == "OLS Trendline"]
+    assert len(traces) == 1
+    trend_trace = traces[0]
+    assert trend_trace.type == "scatter"
+    
+    # Verify calculated trendline endpoints
+    y_vals = list(trend_trace.y)
+    assert abs(y_vals[0] - 9.6) < 1e-5
+    assert abs(y_vals[-1] - 53.4) < 1e-5
+
+    # Assert prediction trace exists and is correct
+    pred_traces = [t for t in fig.data if t.name == "90-Day Prediction"]
+    assert len(pred_traces) == 1
+    pred_trace = pred_traces[0]
+    assert pred_trace.type == "scatter"
+    
+    # Endpoints: first point is at the last historical date, second point is 90 days in the future
+    x_dates = list(pred_trace.x)
+    assert len(x_dates) == 2
+    assert x_dates[0] == df["date"].max()
+    assert x_dates[1] == df["date"].max() + pd.Timedelta(days=90)
+    
+    y_pred_vals = list(pred_trace.y)
+    # y at last point: 9.6 + 4.86666... * 9 = 53.4
+    # y at 90 days later (x = 9 + 90 = 99): 9.6 + 4.86666... * 99 = 491.4
+    assert abs(y_pred_vals[0] - 53.4) < 1e-5
+    assert abs(y_pred_vals[1] - 491.4) < 1e-5
+
+
+
+
+
 
 

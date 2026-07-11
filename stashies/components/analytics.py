@@ -1,4 +1,5 @@
 """Dash component for rendering stash analytics plots and metric summaries."""
+import os
 from typing import Any, ClassVar, Dict
 import dash_bootstrap_components as dbc
 from dash import dcc, html
@@ -78,11 +79,26 @@ class AnalyticsComponent(BaseComponent):
                     clearable=False,
                     style={"width": "250px", "color": "#000000"},
                 ),
-                dbc.Checkbox(
+                 dbc.Checkbox(
                     id="analytics-moving-average-checkbox",
                     label="30-Day Moving Average",
                     value=False,
                     className="text-success fw-bold ms-4",
+                    input_style={"border": "2px solid #00bc8c", "cursor": "pointer"},
+                ),
+                dbc.Checkbox(
+                    id="analytics-trendline-checkbox",
+                    label="Show Trendline (OLS)",
+                    value=False,
+                    className="text-success fw-bold ms-4",
+                    input_style={"border": "2px solid #00bc8c", "cursor": "pointer"},
+                ),
+                dbc.Checkbox(
+                    id="analytics-prediction-checkbox",
+                    label="Show Prediction (90 Days)",
+                    value=False,
+                    className="text-success fw-bold ms-4",
+                    input_style={"border": "2px solid #00bc8c", "cursor": "pointer"},
                 )
             ],
             className="d-flex align-items-center mb-3 mt-3 flex-wrap"
@@ -95,7 +111,12 @@ class AnalyticsComponent(BaseComponent):
                         html.H4("Stash Analytics Overview", className="mt-3 text-success"),
                         html.P("Analyze your personal stash details over time."),
                         metric_selector,
-                        html.Div(id="analytics-content-area")
+                        html.Div(id="analytics-content-area"),
+                        dcc.Interval(
+                            id="analytics-interval",
+                            interval=int(os.getenv("ANALYTICS_REFRESH_INTERVAL", "30")) * 1000,
+                            n_intervals=0
+                        )
                     ],
                     width=12
                 )
@@ -182,7 +203,7 @@ class AnalyticsComponent(BaseComponent):
             className="mb-4 mt-3"
         )
 
-    def build_figure(self, df: Any, metric_info: Dict[str, Any], is_mobile: bool = False, moving_average: bool = False) -> Any:
+    def build_figure(self, df: Any, metric_info: Dict[str, Any], is_mobile: bool = False, moving_average: bool = False, show_trendline: bool = False, show_prediction: bool = False) -> Any:
         """
         Create a Plotly Line figure using the metric metadata configuration.
         - Input
@@ -190,6 +211,8 @@ class AnalyticsComponent(BaseComponent):
             - metric_info (dict): Sub-dict of METRIC_MAP for the selected metric.
             - is_mobile (bool): True to render using compact margins/fonts.
             - moving_average (bool): True if showing moving average.
+            - show_trendline (bool): True to render OLS trendline.
+            - show_prediction (bool): True to render OLS 90-day prediction.
         - output: plotly.graph_objects.Figure instance.
         """
         import plotly.express as px
@@ -255,6 +278,61 @@ class AnalyticsComponent(BaseComponent):
             line_color=metric_info.get("color", "#00bc8c"),
             marker=dict(size=4 if is_mobile else 6)
         )
+
+        if (show_trendline or show_prediction) and not df.empty and len(df) >= 2:
+            import numpy as np
+            import pandas as pd
+            import plotly.graph_objects as go
+            try:
+                dates = pd.to_datetime(df["date"])
+                x = (dates - dates.min()).dt.total_seconds() / (24 * 3600)
+                y = df[metric_info["col"]].astype(float)
+                
+                x_mean = np.mean(x)
+                y_mean = np.mean(y)
+                numerator = np.sum((x - x_mean) * (y - y_mean))
+                denominator = np.sum((x - x_mean) ** 2)
+                
+                if denominator != 0:
+                    slope = numerator / denominator
+                    intercept = y_mean - slope * x_mean
+                    
+                    if show_trendline:
+                        y_trend = slope * x + intercept
+                        fig.add_trace(
+                            go.Scatter(
+                                x=df["date"],
+                                y=y_trend,
+                                mode="lines",
+                                name="OLS Trendline",
+                                line=dict(color="#ff3333", dash="dash", width=2),
+                                hovertemplate="Trend: %{y:,.1f}<extra></extra>"
+                            )
+                        )
+                        
+                    if show_prediction:
+                        last_date = dates.max()
+                        future_date = last_date + pd.Timedelta(days=90)
+                        
+                        x_last = x.iloc[-1]
+                        x_future = x_last + 90
+                        
+                        y_last = slope * x_last + intercept
+                        y_future = slope * x_future + intercept
+                        
+                        fig.add_trace(
+                            go.Scatter(
+                                x=[last_date, future_date],
+                                y=[y_last, y_future],
+                                mode="lines",
+                                name="90-Day Prediction",
+                                line=dict(color="#f39c12", dash="dot", width=2.5),
+                                hovertemplate="Predicted: %{y:,.1f}<extra></extra>"
+                            )
+                        )
+            except Exception as e:
+                self.LOGGER.error(f"Error computing OLS trendline/prediction: {e}")
+
         return fig
 
     def build_animated_figure(self, df: Any, is_mobile: bool = False) -> Any:

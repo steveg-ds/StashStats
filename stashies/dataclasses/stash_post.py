@@ -8,8 +8,16 @@ class PackPost(BaseModel):
 
     - Properties:
         - skeins (float | None): Number of skeins to record.
+        - colorway (str | None): Colorway name string.
+        - dye_lot (str | None): Dye lot identifier.
     """
     skeins: Optional[float] = Field(default=None)
+    colorway: Optional[str] = Field(default=None)
+    dye_lot: Optional[str] = Field(default=None)
+    total_weight: Optional[float] = Field(default=None)
+    total_length: Optional[float] = Field(default=None)
+    weight_units: Optional[str] = Field(default=None)
+    length_units: Optional[str] = Field(default=None)
 
 class StashPost(BaseModel):
     """

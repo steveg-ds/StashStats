@@ -57,6 +57,11 @@ class AppController(Base):
             - modal_id (str): DOM id for edit modal container. Defaults to 'edit-stash-modal'.
             - analytics_id (str): DOM id for analytics container. Defaults to 'app-analytics'.
         """
+        self.LOGGER.debug(
+            f"Initializing AppController with: header_id={header_id}, search_id={search_id}, "
+            f"result_id={result_id}, stash_card_id={stash_card_id}, modal_id={modal_id}, "
+            f"analytics_id={analytics_id}"
+        )
         self.MODEL: 'Model' = Model()
         self.HEADER: 'Header' = Header(container_id=header_id)
         self.SEARCH: 'Search' = Search(container_id=search_id)
@@ -71,6 +76,7 @@ class AppController(Base):
         Build the top-level Dash layout with tabbed navigation.
         - output: List containing the header container and a tabbed panel with Personal Stash, Stash Analytics, and Yarn Search tabs.
         """
+        self.LOGGER.debug("Creating initial top-level layout with tabbed navigation")
         username = self.MODEL.get_current_username()
         self.HEADER.update_layout(username)
         tabs_layout = html.Div(
@@ -146,6 +152,7 @@ class AppController(Base):
             - category (str): Optional category filter.
         - output: dbc.Col with accordion of results, or html.Div('No results found.').
         """
+        self.LOGGER.debug(f"search_yarn called with: query='{query}', sort='{sort}', category='{category}'")
         sort_map = {
             "best_match": "best",
             "highest_rating": "rating",
@@ -192,6 +199,7 @@ class AppController(Base):
         Render layout structure for Personal Stash tab.
         - output: html.Div container.
         """
+        self.LOGGER.debug("Rendering Personal Stash tab layout container")
         # Placing search query and sorting inputs side-by-side using Bootstrap columns.
         # xs=12 stacks on mobile/small screens; md=8 and md=4 sum to 12 to align them on medium+ screens.
         search_col = dbc.Col(
@@ -264,6 +272,10 @@ class AppController(Base):
             - active_page (int | None): Currently active page. Defaults to None.
         - output: List of dbc.Col containing the single accordion container, or a tuple of (list, total_pages) if page is specified.
         """
+        self.LOGGER.debug(
+            f"render_stash_cards called with: query='{query}', sort_by='{sort_by}', "
+            f"active_page={active_page}"
+        )
         stash_list = self.MODEL.get_stash_list()
         if not stash_list:
             fallback_msg = [html.Div("No stashed yarns found or API request failed.", className="text-warning mt-3")]
@@ -280,6 +292,7 @@ class AppController(Base):
                 colorway = (s.get("colorway_name") or "").lower()
                 if q in name or q in brand or q in colorway:
                     filtered.append(s)
+            self.LOGGER.debug(f"Filtered stash list count: {len(filtered)} (original count: {len(stash_list)})")
 
         if not filtered:
             fallback_msg = [html.Div("No matching stash entries found.", className="text-info mt-3 ms-2")]
@@ -394,19 +407,27 @@ class AppController(Base):
         Render basic structural layout for analytics tab content.
         - output: dbc.Row container from AnalyticsComponent.
         """
+        self.LOGGER.debug("Rendering basic structural layout for analytics tab content")
         layout = self.ANALYTICS.create_init_layout("yards")
         content = self.render_analytics_content("yards")
         layout.children[0].children[3].children = content
         return layout
 
-    def render_analytics_content(self, selected_metric: str, moving_average: bool = False) -> html.Div:
+    def render_analytics_content(self, selected_metric: str, moving_average: bool = False, show_trendline: bool = False, show_prediction: bool = False) -> html.Div:
         """
         Extract data and render visual elements for analytics page.
         - Input
             - selected_metric (str): Selected metric option.
             - moving_average (bool): True if showing moving average.
+            - show_trendline (bool): True if showing OLS trendline.
+            - show_prediction (bool): True if showing OLS 90-day prediction.
         - output: html.Div container.
         """
+        self.LOGGER.debug(
+            f"render_analytics_content called with: selected_metric='{selected_metric}', "
+            f"moving_average={moving_average}, show_trendline={show_trendline}, "
+            f"show_prediction={show_prediction}"
+        )
         stash_list = self.MODEL.get_stash_list()
         if not stash_list:
             return html.Div("No stashed yarns found or API request failed.", className="text-warning mt-3")
@@ -455,12 +476,12 @@ class AppController(Base):
         if selected_metric == "all":
             figs = {}
             for k, m_info in self.ANALYTICS.METRIC_MAP.items():
-                figs[k] = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average)
+                figs[k] = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average, show_trendline=show_trendline, show_prediction=show_prediction)
             grid = self.ANALYTICS.build_grid(figs)
             return html.Div([stats_cards, grid])
         else:
             m_info = self.ANALYTICS.METRIC_MAP.get(selected_metric, self.ANALYTICS.METRIC_MAP["yards"])
-            fig = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average)
+            fig = self.ANALYTICS.build_figure(df, m_info, is_mobile=True, moving_average=moving_average, show_trendline=show_trendline, show_prediction=show_prediction)
             return html.Div(
                 [
                     stats_cards,
@@ -535,24 +556,42 @@ class AppController(Base):
             - date_added (str | None): Date stash was added.
         - output: Text response explaining API result.
         """
+        self.LOGGER.debug(
+            f"handle_add_to_stash called with yarn_id={yarn_id}, skeins={skeins}, "
+            f"colorway={colorway}, dyelot={dyelot}, location={location}, "
+            f"notes={notes}, date_added={date_added}"
+        )
         stash_payload = {
             "yarn_id": int(yarn_id),
             "stash_status_id": 1
         }
-        if colorway:
-            stash_payload["colorway_name"] = colorway
-        if dyelot:
-            stash_payload["dye_lot"] = dyelot
         if location:
             stash_payload["location"] = location
         if notes:
             stash_payload["notes"] = notes
+        if dyelot:
+            stash_payload["dye_lot"] = dyelot
+
+        pack_data = {}
         if skeins is not None and skeins != "":
-            stash_payload["pack"] = {"skeins": float(skeins)}
-            if date_added:
-                stash_payload["pack"]["purchased_date"] = date_added
-        elif date_added:
-            stash_payload["pack"] = {"purchased_date": date_added}
+            pack_data["skeins"] = float(skeins)
+            yarn_detail = self.MODEL.get_full_yarn(yarn_id)
+            if yarn_detail:
+                yd_per_sk = float(yarn_detail.yardage or 0.0)
+                g_per_sk = float(yarn_detail.grams or 0.0)
+                pack_data["total_length"] = float(skeins) * yd_per_sk
+                pack_data["length_units"] = "yards"
+                pack_data["total_weight"] = float(skeins) * g_per_sk
+                pack_data["weight_units"] = "grams"
+        if colorway:
+            pack_data["colorway"] = colorway
+        if dyelot:
+            pack_data["dye_lot"] = dyelot
+        if date_added:
+            pack_data["purchased_date"] = date_added
+
+        if pack_data:
+            stash_payload["pack"] = pack_data
             
         try:
             response = self.MODEL.create_stash(stash_payload)
@@ -594,6 +633,13 @@ class AppController(Base):
             - usage_date (str | None): Date yarn was used.
         - output: Tuple of status message and modal visibility boolean.
         """
+        self.LOGGER.debug(
+            f"handle_save_edit called with: stash_id={stash_id}, active_tab='{active_tab}', "
+            f"colorway='{colorway}', dyelot='{dyelot}', location='{location}', "
+            f"notes='{notes}', skeins={skeins}, status_id={status_id}, "
+            f"used_skeins={used_skeins}, current_skeins={current_skeins}, "
+            f"usage_date={usage_date}"
+        )
         if active_tab == "modal-tab-usage":
             if used_skeins is None:
                 return "Enter an amount used first.", True
@@ -602,14 +648,45 @@ class AppController(Base):
             if used_f < 0:
                 return "Amount used can't be negative.", True
             remaining = max(0.0, current - used_f)
-            payload = {"pack": {"skeins": remaining}}
+            
+            pack_data = {"skeins": remaining}
+            from .db import DBManager
+            orig = DBManager.get_original_values(str(stash_id))
+            if orig:
+                orig_sk = float(orig.get("skeins") or 1.0)
+                ratio = remaining / orig_sk if orig_sk > 0 else 0.0
+                pack_data["total_length"] = ratio * float(orig.get("yards") or 0.0)
+                pack_data["length_units"] = "yards"
+                pack_data["total_weight"] = ratio * float(orig.get("grams") or 0.0)
+                pack_data["weight_units"] = "grams"
+                
+            payload = {"pack": pack_data}
             if usage_date:
-                from .db import DBManager
                 DBManager.set_pending_usage_date(stash_id, usage_date)
             try:
                 result = self.MODEL.update_stash(stash_id, payload)
                 if result and "stash" in result:
                     self.LOGGER.info(f"[WRITE] stash_id={stash_id} | usage | used={used_f} remaining={remaining}")
+                    try:
+                        from .db import DBManager
+                        orig = DBManager.get_original_values(str(stash_id))
+                        if orig:
+                            orig_sk = float(orig.get("skeins") or 1.0)
+                            ratio = used_f / orig_sk if orig_sk > 0 else 0.0
+                            yards_used = ratio * float(orig.get("yards") or 0.0)
+                            meters_used = ratio * float(orig.get("meters") or 0.0)
+                            grams_used = ratio * float(orig.get("grams") or 0.0)
+                            
+                            DBManager.save_history_event(
+                                stash_id=str(stash_id),
+                                event_date=usage_date or datetime.date.today().isoformat(),
+                                yards=-yards_used,
+                                meters=-meters_used,
+                                skeins=-used_f,
+                                grams=-grams_used
+                            )
+                    except Exception as he:
+                        self.LOGGER.error(f"Failed to write direct history event: {he}")
                     return f"Saved! {used_f:.2g} skeins used → {remaining:.2g} remaining. Refresh stash tab to update list.", False
                 else:
                     self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} | usage | payload={payload}")
@@ -619,16 +696,32 @@ class AppController(Base):
                 return f"Error: {e}", True
         else:
             payload = {"stash_status_id": int(status_id) if status_id else 1}
-            if colorway is not None:
-                payload["colorway_name"] = colorway
-            if dyelot is not None:
-                payload["dye_lot"] = dyelot
             if location is not None:
                 payload["location"] = location
             if notes is not None:
                 payload["notes"] = notes
+            if dyelot is not None:
+                payload["dye_lot"] = dyelot
+
+            pack_data = {}
             if skeins is not None:
-                payload["pack"] = {"skeins": float(skeins)}
+                pack_data["skeins"] = float(skeins)
+                from .db import DBManager
+                orig = DBManager.get_original_values(str(stash_id))
+                if orig:
+                    orig_sk = float(orig.get("skeins") or 1.0)
+                    ratio = float(skeins) / orig_sk if orig_sk > 0 else 0.0
+                    pack_data["total_length"] = ratio * float(orig.get("yards") or 0.0)
+                    pack_data["length_units"] = "yards"
+                    pack_data["total_weight"] = ratio * float(orig.get("grams") or 0.0)
+                    pack_data["weight_units"] = "grams"
+            if colorway is not None:
+                pack_data["colorway"] = colorway
+            if dyelot is not None:
+                pack_data["dye_lot"] = dyelot
+
+            if pack_data:
+                payload["pack"] = pack_data
             try:
                 result = self.MODEL.update_stash(stash_id, payload)
                 if result and "stash" in result:
@@ -668,17 +761,34 @@ class AppController(Base):
             yds = -event.get("yards", 0.0)
             g = -event.get("grams", 0.0)
             date = event.get("date", "Unknown Date")
+            event_id = event.get("id")
+            
+            delete_btn = dbc.Button(
+                "Delete",
+                id={"type": "delete-usage-btn", "index": event_id},
+                size="sm",
+                color="danger",
+                className="py-0 px-2",
+                style={"fontSize": "0.75rem"}
+            )
             
             rows.append(html.Tr([
                 html.Td(date),
                 html.Td(f"{sk:.2f} sk"),
                 html.Td(f"{yds:,.0f} yds"),
                 html.Td(f"{g:,.0f} g"),
+                html.Td(delete_btn)
             ]))
             
         table = dbc.Table(
             [
-                html.Thead(html.Tr([html.Th("Date"), html.Th("Skeins"), html.Th("Yards"), html.Th("Weight")])),
+                html.Thead(html.Tr([
+                    html.Th("Date"),
+                    html.Th("Skeins"),
+                    html.Th("Yards"),
+                    html.Th("Weight"),
+                    html.Th("Action")
+                ])),
                 html.Tbody(rows)
             ],
             bordered=True,
@@ -744,6 +854,7 @@ class AppController(Base):
 
         current_skeins = sd.get("skeins") or 0
         yarn_name = sd.get("name") or "Unnamed Yarn"
+        brand = sd.get("brand") or ""
         history_table = self.build_history_table(sd.get("id"))
 
         created_at_raw = sd.get("created_at")
@@ -778,7 +889,7 @@ class AppController(Base):
             None,
             "modal-tab-details",
             datetime.date.today().isoformat(),
-            f"edit entry: {yarn_name}",
+            f"edit entry: {brand} — {yarn_name}" if brand else f"edit entry: {yarn_name}",
             history_table,
             orig_info,
         )

@@ -1,25 +1,10 @@
 
 services:
-  web:
-    build: .
-    user: "${UID:-1000}:${GID:-1000}"
-    command: gunicorn -b 0.0.0.0:8050 --workers 1 --threads 4 --timeout 120 --capture-output --log-level debug --access-logfile - --reload app:server
-    ports:
-      - "8050:8050"
-    volumes:
-      - .:/app:z
-    environment:
-      - API_USERNAME=${API_USERNAME}
-      - API_KEY=${API_KEY}
-      - RAVELRY_USERNAME=${RAVELRY_USERNAME}
-      - REDIS_URL=redis://cache:6379/0
-      - SQLITE_DB_PATH=/app/data/stash.db
-    depends_on:
-      cache:
-        condition: service_started
 
   cache:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
     volumes:
       - redisdata:/data
 

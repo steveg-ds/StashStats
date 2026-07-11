@@ -67,12 +67,13 @@ class Search(BaseComponent):
                     [
                         dbc.InputGroup(
                             [
-                                dbc.InputGroupText("Category"),
+                                dbc.InputGroupText("Category", style={"backgroundColor": "#444", "color": "#ccc", "border": "1px solid #555"}),
                                 dbc.Select(
                                     id=category_id,
                                     options=self.SEARCH_CATEGORIES,
                                     value=self.DEFAULT_SEARCH,
                                     placeholder="Select Category",
+                                    style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #555"},
                                 ),
                             ]
                         ),
@@ -85,10 +86,11 @@ class Search(BaseComponent):
                     [
                         dbc.InputGroup(
                             [
-                                dbc.InputGroupText("Search"),
+                                dbc.InputGroupText("Search", style={"backgroundColor": "#444", "color": "#ccc", "border": "1px solid #555"}),
                                 dbc.Input(
                                     placeholder="Flux Capacitor",
                                     id=query_id,
+                                    style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #555"},
                                 ),
                             ]
                         ),
@@ -101,12 +103,13 @@ class Search(BaseComponent):
                     [
                         dbc.InputGroup(
                             [
-                                dbc.InputGroupText("Sort"),
+                                dbc.InputGroupText("Sort", style={"backgroundColor": "#444", "color": "#ccc", "border": "1px solid #555"}),
                                 dbc.Select(
                                     id=sort_id,
                                     options=self.SORT_CATEGORIES,
                                     value=self.DEFAULT_SORT,
                                     placeholder="Select Sort",
+                                    style={"backgroundColor": "#333", "color": "#fff", "border": "1px solid #555"},
                                 ),
                             ]
                         ),

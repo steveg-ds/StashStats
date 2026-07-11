@@ -1,11 +1,10 @@
 import os
-from stashies.utils.logger_func import create_logger
+from stashies.base import Base
 import sqlite3
 from typing import Optional
 
-logger = create_logger("DBManager")
 
-class SQLitePool:
+class SQLitePool(Base):
     """
     Connection pool manager for SQLite database.
     """
@@ -31,18 +30,8 @@ class SQLitePool:
         """
         Establish and return a new SQLite database connection.
         """
-        # Connection pooling approach: creates connections on-demand using sqlite3.connect.
-        # Since SQLite is a serverless, single-file database, this approach achieves
-        # connection pooling by opening and closing connections dynamically, while
-        # utilizing OS-level file caching.
-        #
-        # Thread-safety: check_same_thread=False allows sharing the connection handle
-        # across multiple threads, allowing concurrent read/write operations without
-        # raising thread-bound exceptions.
+        self.LOGGER.debug(f"Opening SQLite database connection: {self.db_path}")
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        # Concurrency: Enable Write-Ahead Logging (WAL) journal mode.
-        # This allows concurrent readers and a writer to access the database without blocking,
-        # dramatically increasing throughput and preventing lock contention in multi-threaded environments.
         conn.execute("PRAGMA journal_mode=WAL")
         return conn
 
@@ -50,13 +39,11 @@ class SQLitePool:
         """
         Close a connection and release its resource handles.
         """
-        conn: sqlite3.Connection
-        '''Database connection to release.'''
-
-        # Close connection to release resource handles
+        self.LOGGER.debug("Closing SQLite database connection")
         conn.close()
 
-class DBManager:
+
+class DBManager(Base):
     """
     Database manager coordinating schema migrations, tracking original stash values,
     and recording stash usage history events.
@@ -81,10 +68,11 @@ class DBManager:
             db_path = os.getenv("SQLITE_DB_PATH", "/app/data/stash.db")
             try:
                 cls._pool = SQLitePool(db_path)
-                logger.info(f"SQLite database pool initialized at {db_path}.")
+                cls.LOGGER.info(f"SQLite database pool initialized at {db_path}.")
                 cls.run_migrations()
             except Exception as e:
-                logger.error(f"Failed to initialize SQLite database: {e}")
+                # Fallback to local logger or direct print if cls.LOGGER initialization failed (unlikely)
+                cls.LOGGER.error(f"Failed to initialize SQLite database: {e}")
                 raise e
         return cls._pool
 
@@ -93,13 +81,7 @@ class DBManager:
         """
         Create target database tables and indexes if they do not exist.
         """
-        # Schema Initialization:
-        # 1. original_values table: tracks initial quantities of stash entries when they
-        #    are first entered (serves as the baseline for delta calculations).
-        # 2. stash_history table: records chronological timeline events of stash usage,
-        #    storing physical quantities (yards, meters, skeins, grams) at specific event dates.
-        # 3. idx_history_stash_id index: optimizes queries looking up chronological
-        #    history records filtered by a specific stash_id.
+        cls.LOGGER.debug("Starting SQLite database migrations")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -130,11 +112,11 @@ class DBManager:
                 CREATE INDEX IF NOT EXISTS idx_history_stash_id ON stash_history(stash_id);
                 """)
                 conn.commit()
-                logger.info("SQLite database migrations executed successfully.")
+                cls.LOGGER.info("SQLite database migrations executed successfully.")
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Migration failed: {e}")
+            cls.LOGGER.error(f"Migration failed: {e}")
             raise e
         finally:
             cls.get_pool().putconn(conn)
@@ -144,9 +126,7 @@ class DBManager:
         """
         Get the original quantities of a stash entry.
         """
-        stash_id: str
-        '''Stash entry ID.'''
-
+        cls.LOGGER.debug(f"Fetching original_values for stash_id={stash_id}")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -157,12 +137,15 @@ class DBManager:
                 )
                 row = cur.fetchone()
                 if row:
-                    return {"yards": row[0], "meters": row[1], "skeins": row[2], "grams": row[3]}
+                    val = {"yards": row[0], "meters": row[1], "skeins": row[2], "grams": row[3]}
+                    cls.LOGGER.debug(f"Found original_values for stash_id={stash_id}: {val}")
+                    return val
+                cls.LOGGER.debug(f"No original_values found for stash_id={stash_id}")
                 return None
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Error reading original_values for stash {stash_id}: {e}")
+            cls.LOGGER.error(f"Error reading original_values for stash {stash_id}: {e}")
             return None
         finally:
             cls.get_pool().putconn(conn)
@@ -172,11 +155,9 @@ class DBManager:
         """
         Retrieve original values in bulk for a collection of stash IDs.
         """
-        stash_ids: list
-        '''List of stash IDs to fetch.'''
-
         if not stash_ids:
             return {}
+        cls.LOGGER.debug(f"Bulk fetching original_values for {len(stash_ids)} stash IDs")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -190,11 +171,12 @@ class DBManager:
                 results = {}
                 for row in rows:
                     results[row[0]] = {"yards": row[1], "meters": row[2], "skeins": row[3], "grams": row[4]}
+                cls.LOGGER.debug(f"Bulk fetched original_values: found {len(results)} matches")
                 return results
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Error reading bulk original_values: {e}")
+            cls.LOGGER.error(f"Error reading bulk original_values: {e}")
             return {}
         finally:
             cls.get_pool().putconn(conn)
@@ -204,17 +186,7 @@ class DBManager:
         """
         Save original quantities for a stash entry, ignoring if already set.
         """
-        stash_id: str
-        '''Stash entry ID.'''
-        yards: float
-        '''Original yards of yarn.'''
-        meters: float
-        '''Original meters of yarn.'''
-        skeins: float
-        '''Original number of skeins.'''
-        grams: float
-        '''Original grams weight.'''
-
+        cls.LOGGER.debug(f"Saving original_values for stash_id={stash_id} (yards={yards}, meters={meters}, skeins={skeins}, grams={grams})")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -225,10 +197,11 @@ class DBManager:
                 ON CONFLICT (stash_id) DO NOTHING
                 """, (str(stash_id), yards, meters, skeins, grams))
                 conn.commit()
+                cls.LOGGER.debug(f"original_values saved/checked for stash_id={stash_id}")
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Error saving original_values for stash {stash_id}: {e}")
+            cls.LOGGER.error(f"Error saving original_values for stash {stash_id}: {e}")
         finally:
             cls.get_pool().putconn(conn)
 
@@ -237,6 +210,7 @@ class DBManager:
         """
         Delete all data related to a stash entry from original_values and stash_history.
         """
+        cls.LOGGER.debug(f"Deleting DB stash data for stash_id={stash_id}")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -244,11 +218,66 @@ class DBManager:
                 cur.execute("DELETE FROM original_values WHERE stash_id = ?", (str(stash_id),))
                 cur.execute("DELETE FROM stash_history WHERE stash_id = ?", (str(stash_id),))
                 conn.commit()
-                logger.info(f"SQLite database entries deleted for stash_id={stash_id}")
+                cls.LOGGER.info(f"SQLite database entries deleted for stash_id={stash_id}")
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Failed to delete stash data for stash_id={stash_id}: {e}")
+            cls.LOGGER.error(f"Failed to delete stash data for stash_id={stash_id}: {e}")
+        finally:
+            cls.get_pool().putconn(conn)
+
+    @classmethod
+    def get_history_event(cls, event_id: int):
+        """
+        Fetch a single stash history event by its auto-increment ID.
+        """
+        cls.LOGGER.debug(f"Fetching history event with id={event_id}")
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute(
+                    "SELECT stash_id, event_date, yards, meters, skeins, grams FROM stash_history WHERE id = ?",
+                    (event_id,)
+                )
+                row = cur.fetchone()
+                if row:
+                    return {
+                        "id": event_id,
+                        "stash_id": row[0],
+                        "date": row[1],
+                        "yards": row[2],
+                        "meters": row[3],
+                        "skeins": row[4],
+                        "grams": row[5]
+                    }
+                return None
+            finally:
+                cur.close()
+        except Exception as e:
+            cls.LOGGER.error(f"Error fetching history event {event_id}: {e}")
+            return None
+        finally:
+            cls.get_pool().putconn(conn)
+
+    @classmethod
+    def delete_history_event(cls, event_id: int):
+        """
+        Delete a single history event by its auto-increment ID.
+        """
+        cls.LOGGER.info(f"Deleting history event with id={event_id}")
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute("DELETE FROM stash_history WHERE id = ?", (event_id,))
+                conn.commit()
+                return True
+            finally:
+                cur.close()
+        except Exception as e:
+            cls.LOGGER.error(f"Error deleting history event {event_id}: {e}")
+            return False
         finally:
             cls.get_pool().putconn(conn)
 
@@ -257,32 +286,32 @@ class DBManager:
         """
         Retrieve chronological history events recorded for a stash ID.
         """
-        stash_id: str
-        '''Stash entry ID.'''
-
+        cls.LOGGER.debug(f"Fetching history events for stash_id={stash_id}")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
             try:
                 cur.execute(
-                    "SELECT event_date, yards, meters, skeins, grams FROM stash_history WHERE stash_id = ? ORDER BY id ASC", 
+                    "SELECT id, event_date, yards, meters, skeins, grams FROM stash_history WHERE stash_id = ? ORDER BY id ASC", 
                     (str(stash_id),)
                 )
                 rows = cur.fetchall()
                 history = []
                 for row in rows:
                     history.append({
-                        "date": row[0],
-                        "yards": row[1],
-                        "meters": row[2],
-                        "skeins": row[3],
-                        "grams": row[4]
+                        "id": row[0],
+                        "date": row[1],
+                        "yards": row[2],
+                        "meters": row[3],
+                        "skeins": row[4],
+                        "grams": row[5]
                     })
+                cls.LOGGER.debug(f"Fetched {len(history)} history events for stash_id={stash_id}")
                 return history
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Error reading stash_history for stash {stash_id}: {e}")
+            cls.LOGGER.error(f"Error reading stash_history for stash {stash_id}: {e}")
             return []
         finally:
             cls.get_pool().putconn(conn)
@@ -292,11 +321,9 @@ class DBManager:
         """
         Fetch chronological stash histories in bulk for a collection of stash IDs.
         """
-        stash_ids: list
-        '''List of stash IDs to query.'''
-
         if not stash_ids:
             return {}
+        cls.LOGGER.debug(f"Bulk fetching history for {len(stash_ids)} stash IDs")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -319,11 +346,12 @@ class DBManager:
                         "skeins": row[4],
                         "grams": row[5]
                     })
+                cls.LOGGER.debug(f"Bulk fetched history events for {len(history)} stash IDs")
                 return history
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Error reading bulk stash_history: {e}")
+            cls.LOGGER.error(f"Error reading bulk stash_history: {e}")
             return {}
         finally:
             cls.get_pool().putconn(conn)
@@ -333,19 +361,7 @@ class DBManager:
         """
         Record a stash history event with specified date and quantities.
         """
-        stash_id: str
-        '''Stash entry ID.'''
-        event_date: str
-        '''Usage event date.'''
-        yards: float
-        '''Yards of yarn at event.'''
-        meters: float
-        '''Meters of yarn at event.'''
-        skeins: float
-        '''Number of skeins at event.'''
-        grams: float
-        '''Grams weight at event.'''
-
+        cls.LOGGER.debug(f"Saving history event for stash_id={stash_id} (date={event_date}, yards={yards}, meters={meters}, skeins={skeins}, grams={grams})")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -355,10 +371,11 @@ class DBManager:
                 VALUES (?, ?, ?, ?, ?, ?)
                 """, (str(stash_id), event_date, yards, meters, skeins, grams))
                 conn.commit()
+                cls.LOGGER.debug(f"Stash history event saved for stash_id={stash_id}")
             finally:
                 cur.close()
         except Exception as e:
-            logger.error(f"Error saving stash_history event for stash {stash_id}: {e}")
+            cls.LOGGER.error(f"Error saving stash_history event for stash {stash_id}: {e}")
         finally:
             cls.get_pool().putconn(conn)
 
@@ -367,11 +384,7 @@ class DBManager:
         """
         Set a temporary usage date for a stash ID.
         """
-        stash_id: str
-        '''Stash entry ID.'''
-        usage_date: str
-        '''Pending usage date string.'''
-
+        cls.LOGGER.debug(f"Setting pending usage date for stash_id={stash_id} to {usage_date}")
         cls._pending_dates[str(stash_id)] = usage_date
 
     @classmethod
@@ -379,7 +392,6 @@ class DBManager:
         """
         Retrieve and remove the pending usage date for a stash ID.
         """
-        stash_id: str
-        '''Stash entry ID.'''
-
-        return cls._pending_dates.pop(str(stash_id), None)
+        date = cls._pending_dates.pop(str(stash_id), None)
+        cls.LOGGER.debug(f"Popped pending usage date for stash_id={stash_id}: {date}")
+        return date

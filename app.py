@@ -169,8 +169,8 @@ def toggle_yarn_collapse(n_clicks, is_open):
     Output("edit-stash-status", "value"),
     Output("edit-stash-status-msg", "children"),
     Output("edit-stash-used-skeins", "value"),
-    Output("edit-stash-modal-tabs", "active_tab"),
-    Output("edit-stash-usage-date", "date"),
+    Output("edit-stash-modal-tabs", "value"),
+    Output("edit-stash-usage-date", "value"),
     Output("edit-stash-modal-title", "children"),
     Output("edit-stash-history-table", "children"),
     Output("edit-stash-original-info", "children"),
@@ -211,7 +211,7 @@ def update_remaining_preview(used, current_skeins):
     Output("stash-update-trigger", "data"),
     Input("edit-stash-save-btn", "n_clicks"),
     State("edit-stash-id-store", "data"),
-    State("edit-stash-modal-tabs", "active_tab"),
+    State("edit-stash-modal-tabs", "value"),
     State("edit-stash-colorway", "value"),
     State("edit-stash-dyelot", "value"),
     State("edit-stash-location", "value"),
@@ -220,7 +220,7 @@ def update_remaining_preview(used, current_skeins):
     State("edit-stash-status", "value"),
     State("edit-stash-used-skeins", "value"),
     State("edit-stash-current-skeins-store", "data"),
-    State("edit-stash-usage-date", "date"),
+    State("edit-stash-usage-date", "value"),
     State("stash-update-trigger", "data"),
     prevent_initial_call=True,
 )
@@ -303,12 +303,54 @@ def handle_delete_confirm_submit(submit_n_clicks, stash_id, trigger_data):
         
     return res_msg, is_open, new_trigger_data
 
-
+@callback(
+    Output("edit-stash-history-table", "children", allow_duplicate=True),
+    Output("edit-stash-status-msg", "children", allow_duplicate=True),
+    Output("stash-update-trigger", "data", allow_duplicate=True),
+    Input({"type": "delete-usage-btn", "index": ALL}, "n_clicks"),
+    State("edit-stash-id-store", "data"),
+    State("stash-update-trigger", "data"),
+    prevent_initial_call=True,
+)
+def delete_usage_entry(delete_clicks, stash_store_data, trigger_data):
+    ctx = callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+        
+    triggered_id = ctx.triggered[0]["prop_id"]
+    if "n_clicks" not in triggered_id:
+        raise PreventUpdate
+        
+    try:
+        triggered_obj = json.loads(triggered_id.split(".")[0])
+        event_id = triggered_obj.get("index", "")
+    except Exception:
+        raise PreventUpdate
+        
+    if not event_id:
+        raise PreventUpdate
+        
+    actual_id = stash_store_data.get("id") if isinstance(stash_store_data, dict) else stash_store_data
+    if not actual_id:
+        raise PreventUpdate
+        
+    success = CONTROLLER.MODEL.delete_stash_history_event(int(event_id))
+    if success:
+        new_table = CONTROLLER.build_history_table(str(actual_id))
+        msg = html.Span("Usage entry deleted and quantities reverted.", className="text-success")
+        new_trigger = (trigger_data or 0) + 1
+        return new_table, msg, new_trigger
+    else:
+        new_table = CONTROLLER.build_history_table(str(actual_id))
+        msg = html.Span("Failed to delete usage entry.", className="text-danger")
+        return new_table, msg, no_update
 
 
 if __name__ == "__main__":
     app.run(
-        host="127.0.0.1",
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "8050")),
         debug=True,
         dev_tools_hot_reload=True,
     )
+

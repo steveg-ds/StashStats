@@ -156,6 +156,7 @@ class StashCard(BaseComponent):
             data={
                 "id": s.get("id"),
                 "name": s.get("name") or yarn_info.get("name") or "Unnamed Yarn",
+                "brand": yarn_info.get("yarn_company_name") or "",
                 "colorway": s.get("colorway_name") or "",
                 "dye_lot": s.get("dye_lot") or "",
                 "location": s.get("location") or "",
@@ -214,11 +215,13 @@ class StashCard(BaseComponent):
             style={"padding": "2px 8px", "fontSize": "0.8rem"}
         )
 
+        yarn_info = s.get("yarn") or {}
         item_store = dcc.Store(
             id={"type": "stash-data-store", "index": stash_id_str},
             data={
                 "id": s.get("id"),
-                "name": s.get("name") or s.get("yarn", {}).get("name") or "Unnamed Yarn",
+                "name": s.get("name") or yarn_info.get("name") or "Unnamed Yarn",
+                "brand": yarn_info.get("yarn_company_name") or "",
                 "colorway": s.get("colorway_name") or "",
                 "dye_lot": s.get("dye_lot") or "",
                 "location": s.get("location") or "",

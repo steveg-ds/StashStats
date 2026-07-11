@@ -4,11 +4,12 @@ from pydantic import Field
 from typing import Dict, Any
 import dash_bootstrap_components as dbc
 
+from ..base import Base
 from ..utils import MODEL_CONFIG
 
 
 @dataclass
-class BaseComponent:
+class BaseComponent(Base):
     """
     Abstract base for Dash layout components.
     Subclasses must implement `create_init_layout()` and call `super().__post_init__()` to build the container.

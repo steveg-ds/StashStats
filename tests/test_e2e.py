@@ -16,6 +16,8 @@ class MockDBManager:
     _history = {}
     _orig = {}
     _pending_dates = {}
+    _next_id = 1
+    _id_to_event = {}
 
     @classmethod
     def get_pool(cls):
@@ -35,7 +37,7 @@ class MockDBManager:
 
     @classmethod
     def get_stash_history(cls, stash_id):
-        return cls._history.get(stash_id, [])
+        return cls._history.get(str(stash_id), [])
 
     @classmethod
     def get_bulk_stash_history(cls, stash_ids):
@@ -43,9 +45,34 @@ class MockDBManager:
 
     @classmethod
     def save_history_event(cls, stash_id, event_date, yards, meters, skeins, grams):
-        cls._history.setdefault(stash_id, []).append({
-            "date": event_date, "yards": yards, "meters": meters, "skeins": skeins, "grams": grams
-        })
+        event_id = cls._next_id
+        cls._next_id += 1
+        event = {
+            "id": event_id,
+            "stash_id": str(stash_id),
+            "date": event_date,
+            "yards": yards,
+            "meters": meters,
+            "skeins": skeins,
+            "grams": grams
+        }
+        cls._history.setdefault(str(stash_id), []).append(event)
+        cls._id_to_event[event_id] = event
+
+    @classmethod
+    def get_history_event(cls, event_id):
+        return cls._id_to_event.get(event_id)
+
+    @classmethod
+    def delete_history_event(cls, event_id):
+        event = cls._id_to_event.get(event_id)
+        if event:
+            stash_id = event["stash_id"]
+            if stash_id in cls._history:
+                cls._history[stash_id] = [e for e in cls._history[stash_id] if e["id"] != event_id]
+            cls._id_to_event.pop(event_id, None)
+            return True
+        return False
 
     @classmethod
     def set_pending_usage_date(cls, stash_id, usage_date):
@@ -54,6 +81,14 @@ class MockDBManager:
     @classmethod
     def pop_pending_usage_date(cls, stash_id):
         return cls._pending_dates.pop(str(stash_id), None)
+
+    @classmethod
+    def delete_stash_data(cls, stash_id):
+        cls._orig.pop(str(stash_id), None)
+        events = cls._history.pop(str(stash_id), None) or []
+        for e in events:
+            cls._id_to_event.pop(e["id"], None)
+        cls._pending_dates.pop(str(stash_id), None)
 
 # Apply mocks to test environment before import
 import stashies.db
@@ -692,6 +727,8 @@ def test_stash_edit_modal_flow_thread(dash_thread_server):
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True, slow_mo=100)
             page = browser.new_page()
+            page.on("console", lambda msg: print(f"BROWSER CONSOLE: {msg.text}"))
+            page.on("pageerror", lambda err: print(f"BROWSER PAGEERROR: {err}"))
             page.goto(dash_thread_server)
             page.wait_for_load_state("networkidle")
 
@@ -716,6 +753,8 @@ def test_stash_edit_modal_flow_thread(dash_thread_server):
             assert page.locator("#edit-stash-notes").input_value() == "Purchased during sale"
 
             # Modify some fields
+            page.fill("#edit-stash-colorway", "New Cave Red")
+            page.fill("#edit-stash-dyelot", "Batch B")
             page.fill("#edit-stash-location", "New Shelf")
             page.fill("#edit-stash-notes", "Used some for a hat")
 
@@ -730,6 +769,9 @@ def test_stash_edit_modal_flow_thread(dash_thread_server):
             last_post = captured_posts[-1]
             assert last_post["location"] == "New Shelf"
             assert last_post["notes"] == "Used some for a hat"
+            assert last_post.get("pack") is not None
+            assert last_post["pack"].get("colorway") == "New Cave Red"
+            assert last_post["pack"].get("dye_lot") == "Batch B"
 
             browser.close()
 
@@ -752,4 +794,165 @@ def test_delete_stash_flow():
         assert is_open is False
         assert new_trigger == 1
         mock_delete.assert_called_once_with(123, "yarn")
+
+
+def test_log_usage_updates_analytics():
+    import requests
+    from unittest.mock import patch, MagicMock
+    from stashies.model import Model
+    from stashies.db import DBManager
+    
+    DBManager.delete_stash_data("101")
+    
+    model = Model()
+    model.get_redis = MagicMock(return_value=None)
+    model.REQ = MagicMock()
+    
+    model.REQ.get_request.side_effect = [
+        # First fetch
+        {
+            "unified_stash": [
+                {
+                    "stash": {
+                        "id": 101,
+                        "created_at": "2026/05/01 12:00:00 -0400",
+                        "updated_at": "2026/05/01 12:00:00 -0400",
+                        "yarn": {"id": 123, "name": "Super Wool", "yardage": 220, "grams": 100},
+                        "packs": [{"skeins": 2.0}]
+                    }
+                }
+            ]
+        },
+        {
+            "stash": {
+                "id": 101,
+                "created_at": "2026/05/01 12:00:00 -0400",
+                "updated_at": "2026/05/01 12:00:00 -0400",
+                "yarn": {"id": 123, "name": "Super Wool", "yardage": 220, "grams": 100},
+                "packs": [{"skeins": 2.0}]
+            }
+        }
+    ]
+    
+    stashes = model.get_stash_list()
+    assert stashes is not None
+    
+    print("STASHES ARE:", stashes)
+    
+    orig = DBManager.get_bulk_original_values(["101"])
+    assert "101" in orig
+    assert orig["101"]["skeins"] == 2.0
+    
+    model.REQ.post_request.return_value = {
+        "stash": {
+            "id": 101,
+            "updated_at": "2026/05/02 12:00:00 -0400",
+            "packs": [{"skeins": 1.5}]
+        }
+    }
+    
+    DBManager.set_pending_usage_date("101", "2026-05-02")
+    model.update_stash("101", {"pack": {"skeins": 1.5}})
+    
+    model.REQ.get_request.side_effect = [
+        # Second fetch
+        {
+            "unified_stash": [
+                {
+                    "stash": {
+                        "id": 101,
+                        "created_at": "2026/05/01 12:00:00 -0400",
+                        "updated_at": "2026/05/02 12:00:00 -0400",
+                        "yarn": {"id": 123, "name": "Super Wool", "yardage": 220, "grams": 100},
+                        "packs": [{"skeins": 1.5}]
+                    }
+                }
+            ]
+        },
+        {
+            "stash": {
+                "id": 101,
+                "created_at": "2026/05/01 12:00:00 -0400",
+                "updated_at": "2026/05/02 12:00:00 -0400",
+                "yarn": {"id": 123, "name": "Super Wool", "yardage": 220, "grams": 100},
+                "packs": [{"skeins": 1.5}]
+            }
+        }
+    ]
+    
+    stashes2 = model.get_stash_list()
+    
+    history = DBManager.get_stash_history("101")
+    assert len(history) == 1
+    assert history[0]["skeins"] == -0.5
+    assert history[0]["date"] == "2026-05-02"
+    
+    df = model.get_analytics_dataframe(stashes2, {})
+    assert not df.empty
+    
+    import pandas as pd
+    row1 = df[df["date"] == pd.to_datetime("2026-05-01")]
+    assert row1["cumulative_skeins"].iloc[0] == 2.0
+    
+    row2 = df[df["date"] == pd.to_datetime("2026-05-02")]
+    assert row2["cumulative_skeins"].iloc[0] == 1.5
+    
+    DBManager.delete_stash_data("101")
+
+
+def test_delete_usage_entry():
+    from unittest.mock import patch, MagicMock
+    from stashies.model import Model
+    from stashies.db import DBManager
+
+    DBManager.delete_stash_data("999")
+
+    # Set original values so we have a baseline
+    DBManager.save_original_values("999", yards=440.0, meters=400.0, skeins=2.0, grams=200.0)
+
+    # Save a history event
+    DBManager.save_history_event("999", "2026-05-02", yards=-110.0, meters=-100.0, skeins=-0.5, grams=-50.0)
+
+    # Get the event ID
+    history = DBManager.get_stash_history("999")
+    assert len(history) == 1
+    event_id = history[0]["id"]
+    assert event_id is not None
+
+    model = Model()
+    model.get_redis = MagicMock(return_value=None)
+    model.REQ = MagicMock()
+
+    # Mock Ravelry API response for getting current stash detail
+    # Assume current Ravelry skeins count is 1.5
+    model.REQ.get_request.return_value = {
+        "stash": {
+            "id": 999,
+            "packs": [{"skeins": 1.5}]
+        }
+    }
+
+    # Mock Ravelry API response for update
+    model.REQ.post_request.return_value = {
+        "stash": {
+            "id": 999,
+            "packs": [{"skeins": 2.0}]
+        }
+    }
+
+    # Call delete
+    success = model.delete_stash_history_event(event_id)
+    assert success is True
+
+    # Verify event is deleted from SQLite
+    assert DBManager.get_history_event(event_id) is None
+
+    # Verify Ravelry update payload was sent with the reverted skeins (1.5 - (-0.5) = 2.0)
+    model.REQ.post_request.assert_called_once()
+    args, kwargs = model.REQ.post_request.call_args
+    assert kwargs["data"]["pack"]["skeins"] == 2.0
+
+    DBManager.delete_stash_data("999")
+
+
 
