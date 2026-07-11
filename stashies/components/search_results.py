@@ -241,7 +241,7 @@ class SearchResults(BaseComponent):
             dbc.Row(
                 [labels, thumbnail],
             ),
-            title=f"{company} — {name}" if company else name,
+            title=f"{company} — {name}" if company and company.strip() else name,
         )
 
     def __post_init__(self, *args: Any, **kwargs: Any):

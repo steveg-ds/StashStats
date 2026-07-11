@@ -1,8 +1,14 @@
 /* Accordion header text visibility in dark theme */
 .accordion-button {
     color: #fff !important;
-    font-weight: bold !important;
+    font-weight: 600 !important;
+    background-color: #303030 !important;
 }
 .accordion-button.collapsed {
     color: #fff !important;
+    background-color: #303030 !important;
+}
+.accordion-button:not(.collapsed) {
+    color: #fff !important;
+    background-color: #3a3a3a !important;
 }
