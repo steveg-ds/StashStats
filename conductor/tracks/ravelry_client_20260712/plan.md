@@ -15,9 +15,9 @@
 
 ## Phase 1: Client Foundation & Authentication
 
-- [ ] Task: Setup Ravelry HTTP request client structure and auth
-    - [ ] Write unit tests for Ravelry Client initialization, API request headers, and authentication validation
-    - [ ] Implement `RavelryClient` class with basic HTTP request wrappers and error/retry logic in `stashies/ravelry_client.py`
+- [x] Task: Setup Ravelry HTTP request client structure and auth
+    - [x] Write unit tests for Ravelry Client initialization, API request headers, and authentication validation
+    - [x] Implement `RavelryClient` class with basic HTTP request wrappers and error/retry logic in `stashies/ravelry_client.py`
 - [ ] Task: Implement Ravelry data models
     - [ ] Write unit tests verifying JSON parsing and serialization of Ravelry API responses for yarns and patterns
     - [ ] Define Ravelry API Pydantic/dataclass models in `stashies/dataclasses/`
