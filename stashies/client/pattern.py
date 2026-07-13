@@ -6,8 +6,14 @@ class PatternMixin:
     
     def search_patterns(self, query: str) -> Optional[List[Dict[str, Any]]]:
         """Search patterns."""
-        raise NotImplementedError
+        res = self.get_request("patterns/search.json", params={"query": query})
+        if res is not None:
+            return res.get("patterns")
+        return None
 
     def get_pattern(self, pattern_id: int) -> Optional[Dict[str, Any]]:
         """Get pattern details."""
-        raise NotImplementedError
+        res = self.get_request(f"patterns/{pattern_id}.json")
+        if res is not None:
+            return res.get("pattern")
+        return None
