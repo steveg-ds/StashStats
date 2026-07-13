@@ -25,16 +25,16 @@
 
 ## Phase 2: Core Endpoints Implementation
 
-- [ ] Task: Implement Yarn search and details endpoints
-    - [ ] Write unit tests for RavelryClient search_yarn and get_yarn methods (mocking Ravelry API responses)
-    - [ ] Implement `search_yarn` and `get_yarn` endpoint wrappers in `RavelryClient`
-- [ ] Task: Implement Pattern search and details endpoints
-    - [ ] Write unit tests for RavelryClient search_patterns and get_pattern methods
-    - [ ] Implement `search_patterns` and `get_pattern` endpoint wrappers in `RavelryClient`
-- [ ] Task: Implement User Stash endpoints and modification
-    - [ ] Write unit tests for fetching user stash entries, adding new stash items, and updating quantities
-    - [ ] Implement user stash retrieval and update endpoints in `RavelryClient`
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Core Endpoints Implementation' (Protocol in workflow.md)
+- [x] Task: Implement Yarn search and details endpoints
+    - [x] Write unit tests for RavelryClient search_yarn and get_yarn methods (mocking Ravelry API responses)
+    - [x] Implement `search_yarn` and `get_yarn` endpoint wrappers in `RavelryClient`
+- [x] Task: Implement Pattern search and details endpoints
+    - [x] Write unit tests for RavelryClient search_patterns and get_pattern methods
+    - [x] Implement `search_patterns` and `get_pattern` endpoint wrappers in `RavelryClient`
+- [x] Task: Implement User Stash endpoints and modification
+    - [x] Write unit tests for fetching user stash entries, adding new stash items, and updating quantities
+    - [x] Implement user stash retrieval and update endpoints in `RavelryClient`
+- [~] Task: Conductor - User Manual Verification 'Phase 2: Core Endpoints Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Controller Integration & Local Sync
 
