@@ -34,7 +34,7 @@
 - [x] Task: Implement User Stash endpoints and modification
     - [x] Write unit tests for fetching user stash entries, adding new stash items, and updating quantities
     - [x] Implement user stash retrieval and update endpoints in `RavelryClient`
-- [~] Task: Conductor - User Manual Verification 'Phase 2: Core Endpoints Implementation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Core Endpoints Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Controller Integration & Local Sync
 
