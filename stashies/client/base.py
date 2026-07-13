@@ -26,13 +26,14 @@ class BaseRavelryClient:
         except Exception:
             return None
 
-    def post_request(self, endpoint: str, json_data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def post_request(self, endpoint: str, json_data: Optional[Dict[str, Any]] = None, data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         url = f"{self.base_url}/{endpoint}"
+        payload = json_data or data
         try:
             response = requests.post(
                 url,
                 auth=HTTPBasicAuth(self.api_username, self.api_key),
-                json=json_data,
+                json=payload,
                 params=params
             )
             response.raise_for_status()
@@ -40,13 +41,14 @@ class BaseRavelryClient:
         except Exception:
             return None
 
-    def put_request(self, endpoint: str, json_data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def put_request(self, endpoint: str, json_data: Optional[Dict[str, Any]] = None, data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         url = f"{self.base_url}/{endpoint}"
+        payload = json_data or data
         try:
             response = requests.put(
                 url,
                 auth=HTTPBasicAuth(self.api_username, self.api_key),
-                json=json_data,
+                json=payload,
                 params=params
             )
             response.raise_for_status()

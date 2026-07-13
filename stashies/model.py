@@ -1,12 +1,18 @@
-"""Data model layer for StashStats. Handles Ravelry API interactions including yarn search, stash retrieval with caching, stash creation, and updates."""
+import os
+import json
+from typing import Dict, Any, List, Union, Optional
 from pydantic.dataclasses import dataclass
 from pydantic import Field, ValidationError
-from typing import Dict, Any, List, Union, Optional
-import json
-from .base_req import Req
+from .ravelry_client import RavelryClient
 from .base import Base
 from .dataclasses import Yarn
 from .utils import YARDS_TO_METERS
+
+
+def create_ravelry_client() -> RavelryClient:
+    api_username = os.getenv("API_USERNAME", "")
+    api_key = os.getenv("API_KEY", "")
+    return RavelryClient(api_username=api_username, api_key=api_key)
 
 
 def get_primary_totals(packs, yarn_info):
@@ -67,7 +73,7 @@ def get_primary_totals(packs, yarn_info):
 _get_primary_totals = get_primary_totals
 
 
-@dataclass
+@dataclass(config=dict(arbitrary_types_allowed=True))
 class Model(Base):
     """
     MVC Model layer — wraps Ravelry API calls and local cache management.
@@ -75,7 +81,7 @@ class Model(Base):
     - Properties:
         - REQ (Req): Authenticated HTTP client for Ravelry API.
     """
-    REQ: 'Req' = Field(default_factory=Req)
+    REQ: RavelryClient = Field(default_factory=create_ravelry_client)
     _redis: Any = None
     _memory_cache: Dict[str, str] = Field(default_factory=dict)
 
