@@ -2,8 +2,8 @@
 
 ## Phase 0: Workspace Setup & Audit
 
-- [ ] Task: Initialize isolated development workspace
-    - [ ] Create a git worktree for this track to isolate work on the client package
+- [x] Task: Initialize isolated development workspace
+    - [x] Create a git worktree for this track to isolate work on the client package
 - [ ] Task: Audit existing Ravelry API implementation
     - [ ] Review `stashies/base_req.py` and `stashies/model.py` to identify existing API calls, authentication patterns, and caching mechanics to maximize reuse and maintain compatibility
 
