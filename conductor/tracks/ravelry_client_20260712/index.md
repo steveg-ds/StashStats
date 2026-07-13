@@ -2,4 +2,5 @@
 
 - [Specification](./spec.md)
 - [Implementation Plan](./plan.md)
+- [Orchestration Strategy](./orchestration_strategy.md)
 - [Metadata](./metadata.json)
