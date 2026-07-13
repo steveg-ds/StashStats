@@ -38,10 +38,9 @@
 
 ## Phase 3: Controller Integration & Local Sync
 
-- [ ] Task: Integrate new RavelryClient with AppController
-    - [ ] Write unit tests verifying AppController interacts with the new client structure instead of raw requests
-    - [ ] Refactor `stashies/app_controller.py` to use `RavelryClient` for search and details retrieval
-- [ ] Task: Align local caching and database logic with new models
-    - [ ] Write unit tests for caching RavelryClient model responses in local DB
-    - [ ] Refactor `stashies/db.py` to align with the new data models and cache format
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Controller Integration & Local Sync' (Protocol in workflow.md)
+- [x] Task: Integrate new RavelryClient with AppController
+    - [x] Write unit tests verifying AppController interacts with the new client structure instead of raw requests
+    - [x] Refactor `stashies/app_controller.py` to use `RavelryClient` for search and details retrieval
+- [x] Task: Align local caching and database logic with new models
+    - [x] Update database schemas, helper functions, and caching handlers to consistently parse and store objects using the new Pydantic dataclasses
+- [~] Task: Conductor - User Manual Verification 'Phase 3: Controller Integration & Local Sync' (Protocol in workflow.md)
