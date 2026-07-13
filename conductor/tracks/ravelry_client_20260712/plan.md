@@ -21,7 +21,7 @@
 - [x] Task: Implement Ravelry data models
     - [x] Write unit tests verifying JSON parsing and serialization of Ravelry API responses for yarns and patterns
     - [x] Define Ravelry API Pydantic/dataclass models in `stashies/dataclasses/`
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Client Foundation & Authentication' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Client Foundation & Authentication' (Protocol in workflow.md)
 
 ## Phase 2: Core Endpoints Implementation
 
