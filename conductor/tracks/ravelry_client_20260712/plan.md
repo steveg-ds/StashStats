@@ -4,8 +4,8 @@
 
 - [x] Task: Initialize isolated development workspace
     - [x] Create a git worktree for this track to isolate work on the client package
-- [ ] Task: Audit existing Ravelry API implementation
-    - [ ] Review `stashies/base_req.py` and `stashies/model.py` to identify existing API calls, authentication patterns, and caching mechanics to maximize reuse and maintain compatibility
+- [x] Task: Audit existing Ravelry API implementation
+    - [x] Review `stashies/base_req.py` and `stashies/model.py` to identify existing API calls, authentication patterns, and caching mechanics to maximize reuse and maintain compatibility
 
 ## Phase 0.5: Delegation & Multi-Agent Orchestration Plan
 
