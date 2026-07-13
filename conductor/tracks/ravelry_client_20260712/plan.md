@@ -7,6 +7,12 @@
 - [ ] Task: Audit existing Ravelry API implementation
     - [ ] Review `stashies/base_req.py` and `stashies/model.py` to identify existing API calls, authentication patterns, and caching mechanics to maximize reuse and maintain compatibility
 
+## Phase 0.5: Delegation & Multi-Agent Orchestration Plan
+
+- [ ] Task: Design delegation and orchestration strategy
+    - [ ] Map out specific tasks (e.g., model creation, specific endpoints) to delegate to subagents (e.g., `cavecrew-builder` or specialized workers)
+    - [ ] Define integration interfaces and validation protocols for coordinated subagent merges
+
 ## Phase 1: Client Foundation & Authentication
 
 - [ ] Task: Setup Ravelry HTTP request client structure and auth
