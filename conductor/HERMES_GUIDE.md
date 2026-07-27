@@ -158,7 +158,7 @@ Once all phases and tasks in `plan.md` are marked `[x]`:
 
 ---
 
-## 6. Session Tracking & AGY Review Feedback Loop
+## 6. Session Tracking, Goals & AGY Review Loop
 
 ### 6.1 Session ID Tracking in `metadata.json`
 To allow seamless multi-turn conversation resumption across task iterations:
@@ -176,11 +176,18 @@ To allow seamless multi-turn conversation resumption across task iterations:
    hermes chat -m openrouter/free --resume <session_id> -q "Implement next task in track <track_id>"
    ```
 
-### 6.2 Subagent Delegation Strategy
-When implementing tasks with `openrouter/free`, Hermes SHOULD use `delegate_task` or local subagents for isolated lookups and surgical single-file edits to conserve context and maximize accuracy.
+### 6.2 Autonomous Goal Mode (`/goal` & `/subgoal`)
+When dispatching complex multi-step tasks, AGY passes `/goal` to Hermes to enable autonomous iterative execution across turns:
+```bash
+hermes chat -m openrouter/free --resume <session_id> -q "/goal Implement task '<Task Name>' cleanly with TDD. Keep working until all unit tests pass, git note is attached, and plan.md is updated."
+```
+Hermes will use its native goal engine to track progress, execute subgoals, and iterate until the criteria are satisfied.
 
-### 6.3 Handling AGY Review Feedback
-After Hermes commits a task implementation, Antigravity (AGY) reviews the diff and runs the automated test suite.
+### 6.3 Subagent Delegation Strategy
+When implementing tasks with `openrouter/free`, Hermes SHOULD use `delegate_task` or local subagents (`cavecrew-builder`) for isolated lookups and surgical single-file edits to conserve context and maximize accuracy.
+
+### 6.4 Handling AGY Review Feedback
+After Hermes completes a task/goal, Antigravity (AGY) reviews the diff and runs the automated test suite.
 If AGY finds bugs, failing assertions, or style issues, AGY resumes the tracked Hermes session with specific fix instructions:
 ```bash
 hermes chat -m openrouter/free --resume <session_id> -q "AGY Review Feedback for '<Task Name>': <Specific error / bug description>. Please fix implementation in <file>, ensure tests pass, and commit updated code."
