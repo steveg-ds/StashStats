@@ -5,13 +5,13 @@
 - [x] Task: Install Postgres dependencies [247b140]
     - [ ] Add `psycopg2-binary` to `requirements.txt` (or update pip dependencies in `.venv`)
 
-## Phase 1: Database Manager & Schema Implementation
+## Phase 1: Database Manager & Schema Implementation [checkpoint: de3f56f]
 
 - [x] Task: Implement Postgres DBManager and schema creation [10f443a]
     - [x] Write unit tests for `DBManager` schema creation and basic queries using mock database connections
     - [x] Modify `stashies/db.py` to replace `sqlite3` with `psycopg2` connection pool
     - [x] Update column types in schema (`VARCHAR(50)`, `DOUBLE PRECISION`, `SERIAL PRIMARY KEY`) and query placeholders to `%s`
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Database Manager & Schema Implementation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Database Manager & Schema Implementation' (Protocol in workflow.md) [de3f56f]
 
 ## Phase 2: Docker Compose & Environment Configuration
 
