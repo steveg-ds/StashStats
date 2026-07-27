@@ -37,3 +37,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: Docker Continuous Uptime & Remote Git Build Setup**
   *Link: [./tracks/docker_continuous_uptime_20260727/](./tracks/docker_continuous_uptime_20260727/)*
+
+---
+
+- [ ] **Track: Reproducible Packaging with pyproject.toml and uv**
+  *Link: [./tracks/pyproject_packaging_20260727/](./tracks/pyproject_packaging_20260727/)*

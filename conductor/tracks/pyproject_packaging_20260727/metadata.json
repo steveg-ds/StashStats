@@ -1,0 +1,8 @@
+{
+  "track_id": "pyproject_packaging_20260727",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-07-27T17:43:00Z",
+  "updated_at": "2026-07-27T17:43:00Z",
+  "description": "Reproducible Packaging with pyproject.toml and uv"
+}
