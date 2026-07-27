@@ -15,10 +15,10 @@
 
 ## Phase 2: Docker Compose & Environment Configuration
 
-- [ ] Task: Restore PostgreSQL service in docker-compose
-    - [ ] Restore `db` service (postgres:15-alpine) and volumes in `docker-compose.yml`
-    - [ ] Add depends_on relation to `web` service in docker-compose.yml
-    - [ ] Ensure `DATABASE_URL` is passed to the web container and updated in `.env`
+- [x] Task: Restore PostgreSQL service in docker-compose [5bde8c6]
+    - [x] Restore `db` service (postgres:15-alpine) and volumes in `docker-compose.yml`
+    - [x] Add depends_on relation to `web` service in docker-compose.yml
+    - [x] Ensure `DATABASE_URL` is passed to the web container and updated in `.env`
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Docker Compose & Environment Configuration' (Protocol in workflow.md)
 
 ## Phase 3: Data Migration Script
