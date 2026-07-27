@@ -84,7 +84,7 @@ class AppController(Base):
             [
                 dcc.Tabs(
                     id="app-tabs",
-                    value="tab-search",
+                    value="tab-stash",
                     children=[
                         dcc.Tab(
                             label="Personal Stash",
