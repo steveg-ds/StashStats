@@ -1,41 +1,67 @@
+# StashStats Agent Guidelines & Workflows
+
 Respond terse like smart caveman. All technical substance stay. Only fluff die.
 
-Rules:
-- Drop: articles (a/an/the), filler (just/really/basically), pleasantries, hedging
-- Fragments OK. Short synonyms. Technical terms exact. Code unchanged.
-- Pattern: [thing] [action] [reason]. [next step].
-- Not: "Sure! I'd be happy to help you with that."
-- Yes: "Bug in auth middleware. Fix:"
+## 1. Caveman Communication Protocol
 
-Switch level: /caveman lite|full|ultra|wenyan
-Stop: "stop caveman" or "normal mode"
+- **Drop:** Articles (a/an/the), filler (just/really/basically), pleasantries, hedging.
+- **Style:** Fragments OK. Short synonyms. Technical terms exact. Code unchanged.
+- **Pattern:** `[thing] [action] [reason]. [next step].`
+- **Examples:**
+  - Bad: "Sure! I'd be happy to help you with that bug in auth."
+  - Good: "Bug in auth middleware. Fix:"
+- **Auto-Clarity:** Drop caveman for security warnings, irreversible actions, user confused. Resume after.
+- **Boundaries:** Written code, git commits, PRs, and docstrings remain standard technical English.
 
-Auto-Clarity: drop caveman for security warnings, irreversible actions, user confused. Resume after.
+---
 
-Boundaries: code/commits/PRs written normal.
+## 2. Cavecrew Subagents
 
-## Superpowers (always use)
+Use cavecrew subagents aggressively to shrink main-context token cost.
 
-Three cavecrew subagents defined for this session. Use them aggressively to shrink main-context token cost.
+| Agent | Purpose & Trigger | Scope Limit |
+|---|---|---|
+| `cavecrew-investigator` | Code locator: find definitions, callers, references, structure | Read-only. Returns `path:line — symbol — note` |
+| `cavecrew-builder` | Surgical edits: typo fixes, single-function rewrites, mechanical renames | ≤2 files known path. Returns caveman diff receipt |
+| `cavecrew-reviewer` | Code reviewer: check diffs for bugs, security leaks, type errors | Read-only. Format: `path:line: <emoji> <severity>: <problem>. <fix>.` |
 
-| Agent | When |
-|---|---|
-| `cavecrew-investigator` | find where X lives / what calls Y / list uses of Z |
-| `cavecrew-builder` | surgical edit ≤2 files, path already known |
-| `cavecrew-reviewer` | check diff/file for bugs, findings only |
+### Routing Rules
+- "Where is X defined?" / "Find callers of Y" -> `cavecrew-investigator`
+- "Fix this single line/file" -> `cavecrew-builder`
+- "Review my diff" -> `cavecrew-reviewer`
+- Cross-cutting features (3+ files) or unclear scope -> Main thread
+- Spawn independent subagents in parallel. Never poll; system notifies on completion.
 
-**Routing rules:**
-- "Where is X?" → investigator
-- "Fix this line" → builder (if path known)
-- "Any issues?" → reviewer
-- Cross-cutting feature (3+ files) or unclear scope → main thread
-- One-liner answer already known → main thread, no subagent
+---
 
-**Spawn in parallel when independent.** Never poll. System notifies on completion.
+## 3. Conductor Track Implementation Workflow
 
-Output contracts (what main thread can rely on):
-- investigator: `path:line — \`symbol\` — note` bullets + totals
-- builder: `path:line-range — change`. `verified: OK`
-- reviewer: `path:line: emoji severity: problem. fix.` + totals line
+This project uses **Conductor** for spec-driven development. All features, bug fixes, and chores are managed in `conductor/`.
 
-Detailed TODOs should be kept in [[Projects/StashStats/StashStats#TODOs]] using Obsidian Tasks/Dataview syntax. see https://blacksmithgu.github.io/obsidian-dataview/annotation/metadata-tasks/ for documentation. use Dataview Syntax, not the tasks emoji notation
+### Core References
+- `conductor/product.md` — Product definition & goals.
+- `conductor/tech-stack.md` — Tech stack constraints (Python 3, Dash, PostgreSQL, Redis, Docker Compose).
+- `conductor/workflow.md` — Authoritative task lifecycle & TDD protocol.
+- `conductor/tracks.md` — Track registry listing active and completed tracks.
+- `conductor/HERMES_GUIDE.md` — Step-by-step instructions for non-native agents implementing tracks manually.
+
+### Standard Task Execution Loop
+When implementing a track task:
+1. **Identify Task:** Read active track plan (`conductor/tracks/<track_id>/plan.md`), select next `- [ ] Task:`.
+2. **Mark In Progress:** Update status in `plan.md` to `- [~] Task:`.
+3. **TDD Red Phase:** Write failing unit tests defining expected behavior. Confirm failure (`PYTHONPATH=. CI=true .venv/bin/pytest tests/`).
+4. **TDD Green Phase:** Write minimal code to pass tests. Confirm pass.
+5. **Refactor & Coverage:** Improve code structure while keeping tests passing (>80% coverage).
+6. **Commit Code:** `git add <code_files> && git commit -m "feat/fix(<scope>): <description>"`
+7. **Attach Git Note:** `git notes add -m "Task: <name>\nFiles: <list>\nWhy: <reason>" <commit_sha>`
+8. **Record SHA in Plan:** Update `plan.md` task to `- [x] Task: <name> [<sha>]`.
+9. **Commit Plan Update:** `git add conductor/tracks/<track_id>/plan.md && git commit -m "conductor(plan): Mark task '<name>' as complete"`
+10. **Phase Checkpoint Protocol:** When a phase finishes, run automated tests, create checkpoint commit `conductor(checkpoint): Checkpoint end of Phase X`, attach verification git note, append `[checkpoint: <sha>]` to phase header in `plan.md`, and commit plan.
+
+---
+
+## 4. Obsidian TODOs & Notes
+
+Detailed TODOs should be kept in `StashStats.md` (or Obsidian vault) using Obsidian Dataview task syntax:
+` - [ ] Task description [priority:: high] [due:: 2026-08-01]`
+Do NOT use tasks emoji notation (`📅`, `🛫`). Use Dataview field key-value syntax.
