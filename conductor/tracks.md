@@ -22,3 +22,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: Tab & Component Loading Indicators**
   *Link: [./tracks/tab_loading_indicators_20260727/](./tracks/tab_loading_indicators_20260727/)*
+
+---
+
+- [ ] **Track: Additional Ravelry API Endpoints in Stashies Client**
+  *Link: [./tracks/ravelry_api_expansion_20260727/](./tracks/ravelry_api_expansion_20260727/)*
