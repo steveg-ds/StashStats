@@ -57,11 +57,3 @@ When implementing a track task:
 8. **Record SHA in Plan:** Update `plan.md` task to `- [x] Task: <name> [<sha>]`.
 9. **Commit Plan Update:** `git add conductor/tracks/<track_id>/plan.md && git commit -m "conductor(plan): Mark task '<name>' as complete"`
 10. **Phase Checkpoint Protocol:** When a phase finishes, run automated tests, create checkpoint commit `conductor(checkpoint): Checkpoint end of Phase X`, attach verification git note, append `[checkpoint: <sha>]` to phase header in `plan.md`, and commit plan.
-
----
-
-## 4. Obsidian TODOs & Notes
-
-Detailed TODOs should be kept in `StashStats.md` (or Obsidian vault) using Obsidian Dataview task syntax:
-` - [ ] Task description [priority:: high] [due:: 2026-08-01]`
-Do NOT use tasks emoji notation (`📅`, `🛫`). Use Dataview field key-value syntax.
