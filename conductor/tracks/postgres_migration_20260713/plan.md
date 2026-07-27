@@ -7,10 +7,10 @@
 
 ## Phase 1: Database Manager & Schema Implementation
 
-- [ ] Task: Implement Postgres DBManager and schema creation
-    - [ ] Write unit tests for `DBManager` schema creation and basic queries using mock database connections
-    - [ ] Modify `stashies/db.py` to replace `sqlite3` with `psycopg2` connection pool
-    - [ ] Update column types in schema (`VARCHAR(50)`, `DOUBLE PRECISION`, `SERIAL PRIMARY KEY`) and query placeholders to `%s`
+- [x] Task: Implement Postgres DBManager and schema creation [10f443a]
+    - [x] Write unit tests for `DBManager` schema creation and basic queries using mock database connections
+    - [x] Modify `stashies/db.py` to replace `sqlite3` with `psycopg2` connection pool
+    - [x] Update column types in schema (`VARCHAR(50)`, `DOUBLE PRECISION`, `SERIAL PRIMARY KEY`) and query placeholders to `%s`
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Database Manager & Schema Implementation' (Protocol in workflow.md)
 
 ## Phase 2: Docker Compose & Environment Configuration
