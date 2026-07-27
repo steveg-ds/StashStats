@@ -16,7 +16,7 @@ conductor/
 └── tracks/
     └── <track_id>/
         ├── index.md                        # Track context index
-        ├── metadata.json                   # Track metadata (type, status, timestamps)
+        ├── metadata.json                   # Track metadata (type, status, timestamps, hermes_session_id)
         ├── spec.md                         # Feature/bug specification
         └── plan.md                         # Hierarchical task plan
 ```
@@ -158,21 +158,31 @@ Once all phases and tasks in `plan.md` are marked `[x]`:
 
 ---
 
-## 6. Model Configuration & AGY Review Feedback Loop
+## 6. Session Tracking & AGY Review Feedback Loop
 
-### 6.1 Invocation with `openrouter/free`
-Antigravity (AGY) launches Hermes Agent using the free model provider flag:
-```bash
-hermes chat -m openrouter/free -q "Implement task '<Task Name>' in conductor track <track_id> following conductor/HERMES_GUIDE.md"
-```
+### 6.1 Session ID Tracking in `metadata.json`
+To allow seamless multi-turn conversation resumption across task iterations:
+1. When AGY initializes Hermes for a track, AGY passes `--pass-session-id` and stores `hermes_session_id` in `conductor/tracks/<track_id>/metadata.json`:
+   ```json
+   {
+     "track_id": "<track_id>",
+     "type": "feature",
+     "status": "in_progress",
+     "hermes_session_id": "<session_id>"
+   }
+   ```
+2. Subsequent calls use `--resume <session_id>`:
+   ```bash
+   hermes chat -m openrouter/free --resume <session_id> -q "Implement next task in track <track_id>"
+   ```
 
 ### 6.2 Subagent Delegation Strategy
 When implementing tasks with `openrouter/free`, Hermes SHOULD use `delegate_task` or local subagents for isolated lookups and surgical single-file edits to conserve context and maximize accuracy.
 
 ### 6.3 Handling AGY Review Feedback
 After Hermes commits a task implementation, Antigravity (AGY) reviews the diff and runs the automated test suite.
-If AGY finds bugs, failing assertions, or style issues, AGY will invoke Hermes with specific fix instructions:
+If AGY finds bugs, failing assertions, or style issues, AGY resumes the tracked Hermes session with specific fix instructions:
 ```bash
-hermes chat -m openrouter/free -q "AGY Review Feedback for '<Task Name>': <Specific error / bug description>. Please fix implementation in <file>, ensure tests pass, and commit updated code."
+hermes chat -m openrouter/free --resume <session_id> -q "AGY Review Feedback for '<Task Name>': <Specific error / bug description>. Please fix implementation in <file>, ensure tests pass, and commit updated code."
 ```
 Hermes MUST address the reported issues, verify tests pass (`pytest`), update git commit/notes if necessary, and report back to AGY.

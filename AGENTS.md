@@ -67,9 +67,10 @@ This project utilizes a hybrid multi-agent workflow pairing **Antigravity (AGY)*
 
 - **AGY Role**: Track creation (`/conductor:newTrack`), spec/plan management, code review, automated verification, phase checkpointing, track review (`/conductor:review`).
 - **Hermes Role**: Task implementation invoked via `hermes chat -m openrouter/free -q "..."` adhering to `conductor/HERMES_GUIDE.md`. Uses its own subagents (`delegate_task` / `cavecrew-builder`) for surgical edits and TDD execution.
+- **Session Tracking**: Track `hermes_session_id` in `conductor/tracks/<track_id>/metadata.json` and resume sessions via `hermes chat -m openrouter/free --resume <session_id> -q "..."`.
 - **Iterative Loop**:
-  1. AGY assigns next task in `plan.md` to Hermes with `openrouter/free`.
+  1. AGY assigns next task in `plan.md` to Hermes with `openrouter/free` (persisting `hermes_session_id` in `metadata.json`).
   2. Hermes implements task with TDD, attaches git notes, updates `plan.md`, and commits.
   3. AGY reviews `git diff` and executes test suite.
-  4. If issues exist, AGY passes specific review feedback to Hermes (`hermes chat -m openrouter/free -q "Fix <issue> in <file>"`).
+  4. If issues exist, AGY passes specific review feedback to Hermes (`hermes chat -m openrouter/free --resume <session_id> -q "Fix <issue> in <file>"`).
   5. Repeat steps 3 & 4 until AGY approves code quality and tests pass.
