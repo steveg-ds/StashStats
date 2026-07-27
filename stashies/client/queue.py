@@ -1,6 +1,6 @@
 """QueueMixin - Handles Ravelry API queue endpoints."""
 from typing import Any, Dict, List, Optional
-from stashies.client.base import BaseRavelryClient
+from .base import BaseRavelryClient
 
 
 class QueueMixin(BaseRavelryClient):

@@ -1,7 +1,16 @@
 """Playwright E2E test configuration and fixtures."""
 import os
+import time
+import socket
+import threading
 import pytest
 from playwright.sync_api import sync_playwright
+
+
+def is_port_open(host, port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(1)
+        return s.connect_ex((host, port)) == 0
 
 
 @pytest.fixture(scope="module")
@@ -11,7 +20,7 @@ def browser_context():
         browser = p.chromium.launch(headless=True, slow_mo=100)
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         )
         yield context
         context.close()
@@ -20,5 +29,15 @@ def browser_context():
 
 @pytest.fixture(scope="module")
 def app_server_url():
-    """Get the URL where the Dash app server runs."""
-    return os.getenv('APP_SERVER_URL', 'http://localhost:8050')
+    """Get the URL where the Dash app server runs, launching background server if needed."""
+    url = os.getenv('APP_SERVER_URL', 'http://127.0.0.1:8050')
+    if is_port_open('127.0.0.1', 8050):
+        return 'http://127.0.0.1:8050'
+    
+    # Launch in thread if local server is down
+    from app import app
+    server_thread = threading.Thread(target=lambda: app.run(host="127.0.0.1", port=8099, debug=False))
+    server_thread.daemon = True
+    server_thread.start()
+    time.sleep(2)
+    return 'http://127.0.0.1:8099'

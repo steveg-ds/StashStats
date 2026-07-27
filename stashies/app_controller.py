@@ -11,6 +11,7 @@ from .components import (
     ProjectsComponent
 )
 from .model import Model
+from .utils.loading_helper import wrap_with_loading
 
 
 class AppController(Base):
@@ -280,7 +281,11 @@ class AppController(Base):
                 html.H4("My Personal Stash", className="mt-3 text-success"),
                 html.P("Browse and filter your stashed yarn collection."),
                 filter_row,
-                dbc.Row(id="stash-list-container"),
+                wrap_with_loading(
+                    html.Div(id="stash-list-container", children=[
+                        dbc.Row(id="stash-accordions")
+                    ])
+                ),
                 pagination_row
             ]
         )

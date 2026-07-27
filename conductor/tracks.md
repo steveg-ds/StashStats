@@ -35,7 +35,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Docker Continuous Uptime & Remote Git Build Setup**
+- [x] **Track: Docker Continuous Uptime & Remote Git Build Setup**
   *Link: [./tracks/docker_continuous_uptime_20260727/](./tracks/docker_continuous_uptime_20260727/)*
 
 ---
