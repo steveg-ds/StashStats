@@ -1,4 +1,5 @@
 import argparse
+import os
 import sqlite3
 import psycopg2
 
@@ -9,6 +10,34 @@ def migrate_sqlite_to_postgres(sqlite_db_path: str, postgres_url: str) -> None:
 
     pg_conn = psycopg2.connect(postgres_url)
     pg_cur = pg_conn.cursor()
+
+    # Ensure target tables exist
+    pg_cur.execute("""
+    CREATE TABLE IF NOT EXISTS original_values (
+        stash_id VARCHAR(50) PRIMARY KEY,
+        yards DOUBLE PRECISION NOT NULL,
+        meters DOUBLE PRECISION NOT NULL,
+        skeins DOUBLE PRECISION NOT NULL,
+        grams DOUBLE PRECISION NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+    pg_cur.execute("""
+    CREATE TABLE IF NOT EXISTS stash_history (
+        id SERIAL PRIMARY KEY,
+        stash_id VARCHAR(50) NOT NULL,
+        event_date VARCHAR(255) NOT NULL,
+        yards DOUBLE PRECISION NOT NULL,
+        meters DOUBLE PRECISION NOT NULL,
+        skeins DOUBLE PRECISION NOT NULL,
+        grams DOUBLE PRECISION NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+    pg_cur.execute("""
+    CREATE INDEX IF NOT EXISTS idx_history_stash_id ON stash_history(stash_id);
+    """)
+    pg_conn.commit()
 
     sqlite_cur.execute(
         "SELECT stash_id, yards, meters, skeins, grams, created_at FROM original_values"
