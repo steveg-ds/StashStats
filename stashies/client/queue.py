@@ -1,26 +1,31 @@
-"""Queue client mixin for Ravelry API endpoints."""
-from typing import Any, Dict, Optional, List
-from .base import BaseRavelryClient
+"""QueueMixin - Handles Ravelry API queue endpoints."""
+from stashies.client.base import BaseRavelryClient
 
 
 class QueueMixin(BaseRavelryClient):
-    """Mixin for Ravelry Queue API endpoints."""
-    
-    def get_queue(self) -> Optional[List[Dict[str, Any]]]:
-        """Get queue items from Ravelry API."""
-        res = self.get_request("queue/list.json")
-        if res is not None:
-            return res.get("queue")
-        return None
-    
-    def add_to_queue(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Add item to queue."""
-        res = self.post_request("queue/add.json", json_data=item)
-        if res is not None:
-            return res.get("queue_item")
-        return None
-    
-    def remove_from_queue(self, item_id: int) -> bool:
-        """Remove item from queue by ID."""
-        res = self.delete_request(f"queue/{item_id}.json")
-        return res is not None
+    """
+    QueueMixin implements queue management endpoints for the Ravelry API.
+    """
+
+    def get_queue(self):
+        """
+        Get the user's queue list.
+        """
+        response = self.get_request("queue/list.json")
+        if not response:
+            return None
+        return response
+
+    def add_to_queue(self, data):
+        """
+        Add a pattern to the queue.
+        """
+        response = self.post_request("queue/add.json", json_data=data)
+        return response
+
+    def remove_from_queue(self, item_id: int):
+        """
+        Remove a pattern from the queue by its ID.
+        """
+        response = self.delete_request(f"queue/{item_id}.json")
+        return response is not None

@@ -8,8 +8,8 @@
     - [x] Agent verification: Automatically execute regression test `PYTHONPATH=. CI=true .venv/bin/pytest tests/` and inspect stack traces
 
 ## Phase 2: Code Fix & Verification
-- [ ] Task: Resolve database connection / query issues in `DBManager` and callbacks
-    - [ ] Fix connection pool release, lock, or query execution bug in `stashies/db.py` / `stashies/app_controller.py`
-    - [ ] Verify regression tests and full test suite pass cleanly (TDD Green phase)
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Code Fix & Verification' (Protocol in workflow.md)
-    - [ ] Agent verification: Automatically run `PYTHONPATH=. CI=true .venv/bin/pytest tests/` and verify server startup logs
+- [x] Task: Resolve database connection / query issues in `DBManager` and callbacks
+    - [x] Fix connection pool release, lock, or query execution bug in `stashies/db.py` / `stashies/app_controller.py`
+    - [x] Verify regression tests and full test suite pass cleanly (TDD Green phase)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Code Fix & Verification' (Protocol in workflow.md)
+    - [x] Agent verification: Automatically run `PYTHONPATH=. CI=true .venv/bin/pytest tests/` and verify server startup logs

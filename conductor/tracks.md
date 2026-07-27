@@ -30,7 +30,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Fix Personal Stash and Stash Analytics Loading Failure**
+- [x] **Track: Fix Personal Stash and Stash Analytics Loading Failure**
   *Link: [./tracks/fix_stash_loading_20260727/](./tracks/fix_stash_loading_20260727/)*
 
 ---

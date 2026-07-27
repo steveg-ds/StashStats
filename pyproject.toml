@@ -1,0 +1,20 @@
+[project]
+name = "stashies"
+version = "0.1.0"
+description = "Rural Detention Project data processing tools"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pandas>=1.5.0",
+    "geopandas>=0.10.0",
+    "tidyverse",
+    "uv",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["stashies*"]
+exclude = ["data*", "Notes*", "static*", "assets*", "conductor*", "node_modules*", "tests*", "__pycache__*"]
