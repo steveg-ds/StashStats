@@ -32,3 +32,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: Fix Personal Stash and Stash Analytics Loading Failure**
   *Link: [./tracks/fix_stash_loading_20260727/](./tracks/fix_stash_loading_20260727/)*
+
+---
+
+- [ ] **Track: Docker Continuous Uptime & Remote Git Build Setup**
+  *Link: [./tracks/docker_continuous_uptime_20260727/](./tracks/docker_continuous_uptime_20260727/)*
