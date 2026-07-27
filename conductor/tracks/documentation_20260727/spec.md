@@ -1,16 +1,14 @@
-# Specification: Project Documentation
+# Documentation Track Specification
 
-## Overview
-Create comprehensive documentation for the StashStats project to help users and contributors understand the setup, usage, and architecture of the application.
+## Goal
+Showcase StashStats' documentation for Dash app setup and use.
 
-## Functional Requirements
-- Document the overall architecture and Tech Stack.
-- Document the local setup instructions via Docker Compose.
-- Document the Ravelry API client (`stashies/` package).
-- Document the PostgreSQL database schema and data models.
-- Ensure the documentation files are properly formatted in Markdown.
+## Constraints
+- Must use Dash (avoid PDFs)
+- Markdown-only (no GFM allowed)
+- README must include valid Docker Compose commands
+- CI validates all links and structure
+- Exclude API/db docs for Phase 2
 
-## Acceptance Criteria
-- Comprehensive documentation files are created and added to the repository.
-- No performance degradation occurs as a result of these documentation additions.
-- The project remains fully functional.
+## Surface Unknown
+? Broken Docker commands in README (to be tested separately)
