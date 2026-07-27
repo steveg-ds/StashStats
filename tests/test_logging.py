@@ -67,15 +67,15 @@ def test_db_logger_has_handlers():
 
 def test_component_and_db_base_logger_inheritance():
     from stashies.components.base_component import BaseComponent
-    from stashies.db import DBManager, SQLitePool
+    from stashies.db import DBManager, PostgresPool
     
     # Assert they possess class-level LOGGER attribute
     assert hasattr(BaseComponent, "LOGGER")
     assert hasattr(DBManager, "LOGGER")
-    assert hasattr(SQLitePool, "LOGGER")
+    assert hasattr(PostgresPool, "LOGGER")
     
     # Verify logger names are set correctly to class name
     assert BaseComponent.LOGGER.name == "BaseComponent"
     assert DBManager.LOGGER.name == "DBManager"
-    assert SQLitePool.LOGGER.name == "SQLitePool"
+    assert PostgresPool.LOGGER.name == "PostgresPool"
 
