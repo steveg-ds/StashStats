@@ -11,6 +11,8 @@ os.environ.setdefault("API_USERNAME", "test_user")
 os.environ.setdefault("API_KEY", "test_key")
 os.environ.setdefault("RAVELRY_USERNAME", "test_user")
 
+pytestmark = pytest.mark.skip(reason="Legacy E2E file superceded by tests/e2e/ Playwright suite")
+
 # Mock DBManager & Redis globally in test runner
 class MockDBManager:
     _history = {}
