@@ -1,0 +1,8 @@
+{
+  "track_id": "tab_loading_indicators_20260727",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-27T16:40:00Z",
+  "updated_at": "2026-07-27T16:40:00Z",
+  "description": "Add loading indicators for tabs and heavy processing components"
+}
