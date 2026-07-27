@@ -12,3 +12,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: Project Documentation**
   *Link: [./tracks/documentation_20260727/](./tracks/documentation_20260727/)*
+
+---
+
+- [ ] **Track: Comprehensive Playwright E2E Browser Testing Suite**
+  *Link: [./tracks/browser_e2e_testing_20260727/](./tracks/browser_e2e_testing_20260727/)*
