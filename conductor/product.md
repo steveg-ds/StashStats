@@ -20,7 +20,7 @@ StashStats is a Dash-based web application designed to help yarn enthusiasts sea
    - Log history events with specific dates when yarn is used in projects.
 4. **Search & Cache**:
    - Query patterns and yarns via the Ravelry API.
-   - Local-first cache using SQLite to ensure fast performance and query resilience.
+   - Local-first cache using PostgreSQL to ensure fast performance and query resilience.
 
 ## Ravelry API Integration
 - **Bi-directional Sync**: Edits made to yarn quantities, notes, or usage dates in the StashStats interface sync back to the user's Ravelry account to maintain consistency.
