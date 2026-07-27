@@ -9,7 +9,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: Replace SQLite with PostgreSQL and migrate data**
+- [x] **Track: Replace SQLite with PostgreSQL and migrate data**
   *Link: [./tracks/postgres_migration_20260713/](./tracks/postgres_migration_20260713/)*
 
 ---
