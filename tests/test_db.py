@@ -14,11 +14,10 @@ def reset_db_manager_pool():
 
 def test_get_pool():
     """
-    Test DBManager.get_pool initializes and returns psycopg2.pool.SimpleConnectionPool.
-    Fails in RED phase against current SQLite implementation.
+    Test DBManager.get_pool initializes and returns psycopg2.pool.ThreadedConnectionPool.
     """
     mock_pool_inst = MagicMock()
-    with patch("psycopg2.pool.SimpleConnectionPool", create=True, return_value=mock_pool_inst) as mock_pool_cls:
+    with patch("psycopg2.pool.ThreadedConnectionPool", create=True, return_value=mock_pool_inst) as mock_pool_cls:
         pool = DBManager.get_pool()
         mock_pool_cls.assert_called_once()
         assert pool is mock_pool_inst
@@ -29,7 +28,6 @@ def test_run_migrations():
     """
     Test DBManager.run_migrations executes Postgres schema creation DDL
     using connection from psycopg2 connection pool.
-    Fails in RED phase against current SQLite implementation.
     """
     mock_conn = MagicMock()
     mock_cur = MagicMock()
@@ -62,7 +60,6 @@ def test_run_migrations():
 def test_get_original_values():
     """
     Test DBManager.get_original_values queries database using %s parameter placeholder (psycopg2).
-    Fails in RED phase against current SQLite implementation (uses ? placeholder).
     """
     mock_conn = MagicMock()
     mock_cur = MagicMock()
