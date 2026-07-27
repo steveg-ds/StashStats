@@ -1,10 +1,10 @@
 # Implementation Plan: Comprehensive Playwright E2E Browser Testing Suite
 
 ## Phase 1: Test Environment & Fixture Setup
-- [ ] Task: Set up Chromium Playwright dependencies and server fixtures
-    - [ ] Install `pytest-playwright` and Chromium browser binaries with Fedora Linux system dependencies (`playwright install chromium` / `playwright install-deps chromium`)
-    - [ ] Create `tests/e2e/conftest.py` configured for Chromium browser instances, app server lifecycle, and database isolation fixtures
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Test Environment & Fixture Setup' (Protocol in workflow.md)
+- [x] Task: Set up Chromium Playwright dependencies and server fixtures
+    - [x] Install `pytest-playwright` and Chromium browser binaries with Fedora Linux system dependencies (`playwright install chromium` / `playwright install-deps chromium`)
+    - [x] Create `tests/e2e/conftest.py` configured for Chromium browser instances, app server lifecycle, and database isolation fixtures
+- [~] Task: Conductor - User Manual Verification 'Phase 1: Test Environment & Fixture Setup' (Protocol in workflow.md)
     - [ ] Agent verification: Automatically execute `pytest tests/e2e/conftest.py` fixture checks
 
 ## Phase 2: Core E2E Test Suite Implementation
