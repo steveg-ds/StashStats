@@ -2,7 +2,7 @@ import sqlite3
 from unittest.mock import MagicMock, patch
 import pytest
 
-from migrate_sqlite_to_postgres import migrate_sqlite_to_postgres
+from stashies.utils.migration import migrate_sqlite_to_postgres
 
 
 @pytest.fixture
