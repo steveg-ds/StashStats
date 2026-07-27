@@ -1,20 +1,36 @@
-[project]
-name = "stashies"
-version = "0.1.0"
-description = "Rural Detention Project data processing tools"
-readme = "README.md"
-requires-python = ">=3.8"
-dependencies = [
-    "pandas>=1.5.0",
-    "geopandas>=0.10.0",
-    "tidyverse",
-    "uv",
-]
-
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "stashies"
+version = "0.1.0"
+description = "StashStats - Ravelry Stash Analytics and Management Dash Application"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dash>=2.14.0",
+    "dash-bootstrap-components>=1.4.0",
+    "pydantic>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "redis>=5.0.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "gunicorn>=21.2.0",
+    "pandas>=2.0.0",
+    "plotly>=5.18.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-playwright>=0.4.0",
+    "faker>=20.0.0",
+    "anyio>=4.0.0",
+    "uv>=0.1.0",
+]
+
 [tool.setuptools.packages.find]
+where = ["."]
 include = ["stashies*"]
-exclude = ["data*", "Notes*", "static*", "assets*", "conductor*", "node_modules*", "tests*", "__pycache__*"]
+exclude = ["conductor*", "node_modules*", "tests*", "__pycache__*"]

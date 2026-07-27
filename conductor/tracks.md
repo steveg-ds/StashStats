@@ -40,5 +40,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Reproducible Packaging with pyproject.toml and uv**
+- [x] **Track: Reproducible Packaging with pyproject.toml and uv**
   *Link: [./tracks/pyproject_packaging_20260727/](./tracks/pyproject_packaging_20260727/)*
