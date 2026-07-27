@@ -27,3 +27,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: Additional Ravelry API Endpoints in Stashies Client**
   *Link: [./tracks/ravelry_api_expansion_20260727/](./tracks/ravelry_api_expansion_20260727/)*
+
+---
+
+- [ ] **Track: Fix Personal Stash and Stash Analytics Loading Failure**
+  *Link: [./tracks/fix_stash_loading_20260727/](./tracks/fix_stash_loading_20260727/)*
