@@ -1,4 +1,5 @@
 """QueueMixin - Handles Ravelry API queue endpoints."""
+from typing import Any, Dict, List, Optional
 from stashies.client.base import BaseRavelryClient
 
 
@@ -7,25 +8,27 @@ class QueueMixin(BaseRavelryClient):
     QueueMixin implements queue management endpoints for the Ravelry API.
     """
 
-    def get_queue(self):
+    def get_queue(self) -> Optional[List[Dict[str, Any]]]:
         """
         Get the user's queue list.
         """
-        response = self.get_request("queue/list.json")
-        if not response:
-            return None
-        return response
+        res = self.get_request("queue/list.json")
+        if res is not None:
+            return res.get("queue") or res.get("queued_projects")
+        return None
 
-    def add_to_queue(self, data):
+    def add_to_queue(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Add a pattern to the queue.
         """
-        response = self.post_request("queue/add.json", json_data=data)
-        return response
+        res = self.post_request("queue/add.json", json_data=data)
+        if res is not None:
+            return res.get("queue_item")
+        return None
 
-    def remove_from_queue(self, item_id: int):
+    def remove_from_queue(self, item_id: int) -> bool:
         """
         Remove a pattern from the queue by its ID.
         """
-        response = self.delete_request(f"queue/{item_id}.json")
-        return response is not None
+        res = self.delete_request(f"queue/{item_id}.json")
+        return res is not None

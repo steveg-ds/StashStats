@@ -1,8 +1,8 @@
 {
   "track_id": "ravelry_api_expansion_20260727",
   "type": "feature",
-  "status": "new",
-  "created_at": "2026-07-27T16:43:00Z",
-  "updated_at": "2026-07-27T16:43:00Z",
+  "status": "completed",
+  "created_at": "2026-07-27T17:00:00Z",
+  "updated_at": "2026-07-27T17:56:00Z",
   "description": "Additional Ravelry API Endpoints in Stashies Client"
 }

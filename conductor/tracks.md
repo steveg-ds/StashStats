@@ -25,7 +25,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Additional Ravelry API Endpoints in Stashies Client**
+- [x] **Track: Additional Ravelry API Endpoints in Stashies Client**
   *Link: [./tracks/ravelry_api_expansion_20260727/](./tracks/ravelry_api_expansion_20260727/)*
 
 ---
