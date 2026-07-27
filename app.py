@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 from stashies.app_controller import AppController
 from stashies.utils import create_logger
 
-load_dotenv(override=True)
+load_dotenv(override=False)
 
 LOGGER = create_logger(
     logger_name='AppLogger',
