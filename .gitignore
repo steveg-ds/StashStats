@@ -26,7 +26,7 @@ share/python-wheels/
 *.egg
 
 .superpowers/
-docs/
+# docs/  # Removed - documentation should be tracked
 # Virtual Environment
 .venv/
 venv/
