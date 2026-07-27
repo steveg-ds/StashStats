@@ -16,10 +16,14 @@ def is_port_open(host, port):
 @pytest.fixture(scope="session")
 def browser_context():
     """Launch Chromium browser with configured context for the test session."""
-    headless_env = os.getenv("HEADLESS", "false").lower() == "true"
-    slow_mo_env = int(os.getenv("SLOW_MO", "500"))
+    # Default HEADED=true for popup window
+    is_headed = os.getenv("HEADED", "true").lower() == "true"
+    if os.getenv("HEADLESS", "false").lower() == "true":
+        is_headed = False
+
+    slow_mo_env = int(os.getenv("SLOW_MO", "800"))
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless_env, slow_mo=slow_mo_env)
+        browser = p.chromium.launch(headless=not is_headed, slow_mo=slow_mo_env)
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'

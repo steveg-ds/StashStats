@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Script to run Playwright E2E tests in visible headed mode with slow-motion execution
+# Script to run Playwright E2E tests with a visible pop-up browser window
 
 set -e
 
@@ -7,13 +7,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "================================================="
-echo " Starting StashStats Playwright Visual E2E Tests "
+echo " Starting StashStats Visual E2E Pop-Up Browser   "
 echo "================================================="
-echo "Browser mode: HEADED (Visible)"
-echo "Slow Motion:  800ms per action"
+echo "HEADED:  true (Pop-up window enabled)"
+echo "SLOW_MO: 800ms per action"
 echo "-------------------------------------------------"
 
-export HEADLESS=false
+export HEADED=true
 export SLOW_MO=800
 export DATABASE_URL="postgresql://stashuser:stashpassword@localhost:5432/stashstats"
 export PYTHONPATH="."
