@@ -2,7 +2,7 @@
 
 ## Phase 0: Workspace Setup & Pre-requisites
 
-- [ ] Task: Install Postgres dependencies
+- [x] Task: Install Postgres dependencies [247b140]
     - [ ] Add `psycopg2-binary` to `requirements.txt` (or update pip dependencies in `.venv`)
 
 ## Phase 1: Database Manager & Schema Implementation
