@@ -13,12 +13,14 @@ services:
       - "8051:8050"
     volumes:
       - .:/app:z
+    env_file:
+      - .env
     environment:
       - HOME=/tmp
       - TMPDIR=/tmp
       - API_USERNAME=${API_USERNAME}
       - API_KEY=${API_KEY}
-      - RAVELRY_USERNAME=${RAVELRY_USERNAME}
+      - RAVELRY_USERNAME=${RAVELRY_USERNAME:-KMLadyBugCrochets}
       - DATABASE_URL=postgresql://stashuser:stashpassword@db:5432/stashstats
       - REDIS_URL=redis://cache:6379/0
     depends_on:

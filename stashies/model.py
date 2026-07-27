@@ -154,7 +154,7 @@ class Model(Base):
         import concurrent.futures
         from .db import DBManager
         
-        username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
+        username = os.getenv("RAVELRY_USERNAME") or os.getenv("USERNAME") or "KMLadyBugCrochets"
         endpoint = f"people/{username}/stash/unified/list.json"
         
         # Check Redis cache first for the full stash list. If found, deserialize from JSON.
