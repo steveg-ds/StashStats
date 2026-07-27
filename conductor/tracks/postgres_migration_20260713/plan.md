@@ -23,8 +23,8 @@
 
 ## Phase 3: Data Migration Script
 
-- [~] Task: Build data migration utility
-    - [ ] Write unit tests for migrating data from a mock SQLite database to a mock/real Postgres database
-    - [ ] Implement `migrate_sqlite_to_postgres.py` to read SQLite records and write to PostgreSQL
-    - [ ] Execute migration script and verify data integrity
+- [x] Task: Build data migration utility [1819aa5]
+    - [x] Write unit tests for migrating data from a mock SQLite database to a mock/real Postgres database
+    - [x] Implement `migrate_sqlite_to_postgres.py` to read SQLite records and write to PostgreSQL
+    - [x] Execute migration script and verify data integrity
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Data Migration Script' (Protocol in workflow.md)
