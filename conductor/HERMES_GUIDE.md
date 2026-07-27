@@ -66,6 +66,7 @@ For every task in `conductor/tracks/<track_id>/plan.md`:
 
 ### Step 3.3: TDD Green Phase (Implement Code)
 - Write the minimum necessary implementation code in `stashies/` or app root.
+- Use Hermes subagents (`delegate_task` or `cavecrew-builder`) for surgical edits where appropriate.
 - Execute test command to verify all tests pass:
   ```bash
   PYTHONPATH=. CI=true .venv/bin/pytest tests/
@@ -154,3 +155,24 @@ Once all phases and tasks in `plan.md` are marked `[x]`:
 3. **Synchronize Product / Tech Stack Docs:**
    - If technical contracts or capabilities changed, update `conductor/product.md` or `conductor/tech-stack.md`.
    - Commit sync: `git commit -m "docs(conductor): Synchronize docs for track '<Track Name>'"`
+
+---
+
+## 6. Model Configuration & AGY Review Feedback Loop
+
+### 6.1 Invocation with `openrouter/free`
+Antigravity (AGY) launches Hermes Agent using the free model provider flag:
+```bash
+hermes chat -m openrouter/free -q "Implement task '<Task Name>' in conductor track <track_id> following conductor/HERMES_GUIDE.md"
+```
+
+### 6.2 Subagent Delegation Strategy
+When implementing tasks with `openrouter/free`, Hermes SHOULD use `delegate_task` or local subagents for isolated lookups and surgical single-file edits to conserve context and maximize accuracy.
+
+### 6.3 Handling AGY Review Feedback
+After Hermes commits a task implementation, Antigravity (AGY) reviews the diff and runs the automated test suite.
+If AGY finds bugs, failing assertions, or style issues, AGY will invoke Hermes with specific fix instructions:
+```bash
+hermes chat -m openrouter/free -q "AGY Review Feedback for '<Task Name>': <Specific error / bug description>. Please fix implementation in <file>, ensure tests pass, and commit updated code."
+```
+Hermes MUST address the reported issues, verify tests pass (`pytest`), update git commit/notes if necessary, and report back to AGY.

@@ -57,3 +57,19 @@ When implementing a track task:
 8. **Record SHA in Plan:** Update `plan.md` task to `- [x] Task: <name> [<sha>]`.
 9. **Commit Plan Update:** `git add conductor/tracks/<track_id>/plan.md && git commit -m "conductor(plan): Mark task '<name>' as complete"`
 10. **Phase Checkpoint Protocol:** When a phase finishes, run automated tests, create checkpoint commit `conductor(checkpoint): Checkpoint end of Phase X`, attach verification git note, append `[checkpoint: <sha>]` to phase header in `plan.md`, and commit plan.
+11. **Automated Verification Rule:** All phase verification steps must be executed automatically by the implementing agent using test commands (`pytest`, Playwright, `curl`) rather than prompting the user for manual verification.
+
+---
+
+## 4. AGY + Hermes Hybrid Multi-Agent Workflow
+
+This project utilizes a hybrid multi-agent workflow pairing **Antigravity (AGY)** as orchestrator/reviewer with **Hermes Agent** (`openrouter/free`) as task implementer:
+
+- **AGY Role**: Track creation (`/conductor:newTrack`), spec/plan management, code review, automated verification, phase checkpointing, track review (`/conductor:review`).
+- **Hermes Role**: Task implementation invoked via `hermes chat -m openrouter/free -q "..."` adhering to `conductor/HERMES_GUIDE.md`. Uses its own subagents (`delegate_task` / `cavecrew-builder`) for surgical edits and TDD execution.
+- **Iterative Loop**:
+  1. AGY assigns next task in `plan.md` to Hermes with `openrouter/free`.
+  2. Hermes implements task with TDD, attaches git notes, updates `plan.md`, and commits.
+  3. AGY reviews `git diff` and executes test suite.
+  4. If issues exist, AGY passes specific review feedback to Hermes (`hermes chat -m openrouter/free -q "Fix <issue> in <file>"`).
+  5. Repeat steps 3 & 4 until AGY approves code quality and tests pass.
