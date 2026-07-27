@@ -5,6 +5,7 @@
     - [ ] Implement `wrap_with_loading` helper utilizing `dcc.Loading` with `dbc.Spinner` style and `delay_show=500`
     - [ ] Write unit tests verifying wrapper structure and DOM ID preservation
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Helper Utility & Component Wrappers' (Protocol in workflow.md)
+    - [ ] Agent verification: Automatically run unit tests `PYTHONPATH=. CI=true .venv/bin/pytest tests/`
 
 ## Phase 2: Tab View Integration
 - [ ] Task: Wrap heavy components in Personal Stash and Analytics views
@@ -12,3 +13,4 @@
 - [ ] Task: Wrap heavy components in Search views
     - [ ] Integrate loading wrappers into Pattern Search and Yarn Search results containers
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Tab View Integration' (Protocol in workflow.md)
+    - [ ] Agent verification: Automatically run Playwright E2E browser tests verifying spinner DOM elements during callback delays
