@@ -12,7 +12,7 @@ class PostgresPool(Base):
 
     def __new__(cls):
         # We use simple connection pool
-        return psycopg2.pool.SimpleConnectionPool(1, 20, os.getenv("DATABASE_URL"))
+        return psycopg2.pool.ThreadedConnectionPool(1, 20, os.getenv("DATABASE_URL"))
 
 
 

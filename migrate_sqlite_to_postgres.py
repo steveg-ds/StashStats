@@ -67,6 +67,7 @@ def migrate_sqlite_to_postgres(sqlite_db_path: str, postgres_url: str) -> None:
             row,
         )
 
+    pg_cur.execute("SELECT setval('stash_history_id_seq', COALESCE((SELECT MAX(id) FROM stash_history), 1));")
     pg_conn.commit()
 
     sqlite_cur.close()
