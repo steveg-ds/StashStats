@@ -1,46 +1,19 @@
 import os
 from stashies.base import Base
-import sqlite3
+import psycopg2
+import psycopg2.pool
 from typing import Optional
 
 
-class SQLitePool(Base):
+class PostgresPool(Base):
     """
-    Connection pool manager for SQLite database.
+    Connection pool manager for PostgreSQL database.
     """
 
-    db_path: str
-    '''Path to the database file.'''
+    def __new__(cls):
+        # We use simple connection pool
+        return psycopg2.pool.SimpleConnectionPool(1, 20, os.getenv("DATABASE_URL"))
 
-    def __init__(self, db_path: str):
-        """
-        Initialize the SQLitePool.
-        """
-        db_path: str
-        '''Path to the database file.'''
-
-        self.db_path = db_path
-        # Ensure parent directory exists
-        db_dir = os.getenv("SQLITE_DB_PATH", "/app/data/stash.db")
-        parent_dir = os.path.dirname(db_dir)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
-
-    def getconn(self) -> sqlite3.Connection:
-        """
-        Establish and return a new SQLite database connection.
-        """
-        self.LOGGER.debug(f"Opening SQLite database connection: {self.db_path}")
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        conn.execute("PRAGMA journal_mode=WAL")
-        return conn
-
-    def putconn(self, conn: sqlite3.Connection) -> None:
-        """
-        Close a connection and release its resource handles.
-        """
-        self.LOGGER.debug("Closing SQLite database connection")
-        conn.close()
 
 
 class DBManager(Base):
@@ -65,14 +38,13 @@ class DBManager(Base):
         Get or initialize the database connection pool.
         """
         if cls._pool is None:
-            db_path = os.getenv("SQLITE_DB_PATH", "/app/data/stash.db")
             try:
-                cls._pool = SQLitePool(db_path)
-                cls.LOGGER.info(f"SQLite database pool initialized at {db_path}.")
+                cls._pool = PostgresPool()
+                cls.LOGGER.info("Postgres database pool initialized.")
                 cls.run_migrations()
             except Exception as e:
                 # Fallback to local logger or direct print if cls.LOGGER initialization failed (unlikely)
-                cls.LOGGER.error(f"Failed to initialize SQLite database: {e}")
+                cls.LOGGER.error(f"Failed to initialize Postgres database: {e}")
                 raise e
         return cls._pool
 
@@ -88,23 +60,23 @@ class DBManager(Base):
             try:
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS original_values (
-                    stash_id TEXT PRIMARY KEY,
-                    yards REAL NOT NULL,
-                    meters REAL NOT NULL,
-                    skeins REAL NOT NULL,
-                    grams REAL NOT NULL,
+                    stash_id VARCHAR(50) PRIMARY KEY,
+                    yards DOUBLE PRECISION NOT NULL,
+                    meters DOUBLE PRECISION NOT NULL,
+                    skeins DOUBLE PRECISION NOT NULL,
+                    grams DOUBLE PRECISION NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
                 """)
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS stash_history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    stash_id TEXT NOT NULL,
-                    event_date TEXT NOT NULL,
-                    yards REAL NOT NULL,
-                    meters REAL NOT NULL,
-                    skeins REAL NOT NULL,
-                    grams REAL NOT NULL,
+                    id SERIAL PRIMARY KEY,
+                    stash_id VARCHAR(50) NOT NULL,
+                    event_date VARCHAR(255) NOT NULL,
+                    yards DOUBLE PRECISION NOT NULL,
+                    meters DOUBLE PRECISION NOT NULL,
+                    skeins DOUBLE PRECISION NOT NULL,
+                    grams DOUBLE PRECISION NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
                 """)
@@ -132,7 +104,7 @@ class DBManager(Base):
             cur = conn.cursor()
             try:
                 cur.execute(
-                    "SELECT yards, meters, skeins, grams FROM original_values WHERE stash_id = ?", 
+                    "SELECT yards, meters, skeins, grams FROM original_values WHERE stash_id = %s", 
                     (str(stash_id),)
                 )
                 row = cur.fetchone()
@@ -162,7 +134,7 @@ class DBManager(Base):
         try:
             cur = conn.cursor()
             try:
-                placeholders = ",".join("?" for _ in stash_ids)
+                placeholders = ",".join("%s" for _ in stash_ids)
                 cur.execute(
                     f"SELECT stash_id, yards, meters, skeins, grams FROM original_values WHERE stash_id IN ({placeholders})", 
                     tuple(str(sid) for sid in stash_ids)
@@ -193,7 +165,7 @@ class DBManager(Base):
             try:
                 cur.execute("""
                 INSERT INTO original_values (stash_id, yards, meters, skeins, grams)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (stash_id) DO NOTHING
                 """, (str(stash_id), yards, meters, skeins, grams))
                 conn.commit()
@@ -215,8 +187,8 @@ class DBManager(Base):
         try:
             cur = conn.cursor()
             try:
-                cur.execute("DELETE FROM original_values WHERE stash_id = ?", (str(stash_id),))
-                cur.execute("DELETE FROM stash_history WHERE stash_id = ?", (str(stash_id),))
+                cur.execute("DELETE FROM original_values WHERE stash_id = %s", (str(stash_id),))
+                cur.execute("DELETE FROM stash_history WHERE stash_id = %s", (str(stash_id),))
                 conn.commit()
                 cls.LOGGER.info(f"SQLite database entries deleted for stash_id={stash_id}")
             finally:
@@ -237,7 +209,7 @@ class DBManager(Base):
             cur = conn.cursor()
             try:
                 cur.execute(
-                    "SELECT stash_id, event_date, yards, meters, skeins, grams FROM stash_history WHERE id = ?",
+                    "SELECT stash_id, event_date, yards, meters, skeins, grams FROM stash_history WHERE id = %s",
                     (event_id,)
                 )
                 row = cur.fetchone()
@@ -270,7 +242,7 @@ class DBManager(Base):
         try:
             cur = conn.cursor()
             try:
-                cur.execute("DELETE FROM stash_history WHERE id = ?", (event_id,))
+                cur.execute("DELETE FROM stash_history WHERE id = %s", (event_id,))
                 conn.commit()
                 return True
             finally:
@@ -292,7 +264,7 @@ class DBManager(Base):
             cur = conn.cursor()
             try:
                 cur.execute(
-                    "SELECT id, event_date, yards, meters, skeins, grams FROM stash_history WHERE stash_id = ? ORDER BY id ASC", 
+                    "SELECT id, event_date, yards, meters, skeins, grams FROM stash_history WHERE stash_id = %s ORDER BY id ASC", 
                     (str(stash_id),)
                 )
                 rows = cur.fetchall()
@@ -328,7 +300,7 @@ class DBManager(Base):
         try:
             cur = conn.cursor()
             try:
-                placeholders = ",".join("?" for _ in stash_ids)
+                placeholders = ",".join("%s" for _ in stash_ids)
                 cur.execute(
                     f"SELECT stash_id, event_date, yards, meters, skeins, grams FROM stash_history WHERE stash_id IN ({placeholders}) ORDER BY stash_id, id ASC", 
                     tuple(str(sid) for sid in stash_ids)
@@ -368,7 +340,7 @@ class DBManager(Base):
             try:
                 cur.execute("""
                 INSERT INTO stash_history (stash_id, event_date, yards, meters, skeins, grams)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """, (str(stash_id), event_date, yards, meters, skeins, grams))
                 conn.commit()
                 cls.LOGGER.debug(f"Stash history event saved for stash_id={stash_id}")
