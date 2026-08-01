@@ -50,7 +50,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Temperature Blanket Tracking, Ravelry Linkage & Stash Mapping**
+- [x] **Track: Temperature Blanket Tracking, Ravelry Linkage & Stash Mapping**
   *Link: [./tracks/temperature_blanket_20260801/](./tracks/temperature_blanket_20260801/)*
 
 
