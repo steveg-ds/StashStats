@@ -10,13 +10,13 @@
     - [x] Write unit tests verifying DBManager sync state tracking
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Pydantic Sync State Model & Database Schema Extensions' (Protocol in workflow.md) [10ff2cd]
 
-## Phase 2: Batch Sync Engine & UI Change Tracking
+## Phase 2: Batch Sync Engine & UI Change Tracking [checkpoint: 1da154c]
 - [x] Task: AppController Batch Sync Engine & Stash Card Badges [e372f22]
     - [x] Implement `execute_batch_sync` in `AppController`
     - [x] Add `Pending Sync` badge logic to `StashCard` and accordion items
     - [x] Write unit tests mocking Ravelry API calls for sync execution
-- [ ] Task: Personal Stash Sync Button & E2E Integration
-    - [ ] Add "Sync Now" button, pending badge, and callback to Dash app
-    - [ ] Implement 24-hour background sync scheduler
-    - [ ] Write Playwright E2E browser tests verifying sync button, badge updates, and loading indicators
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Batch Sync Engine & UI Change Tracking' (Protocol in workflow.md)
+- [x] Task: Personal Stash Sync Button & E2E Integration [c422ec4]
+    - [x] Add "Sync Now" button, pending badge, and callback to Dash app
+    - [x] Implement 24-hour background sync scheduler
+    - [x] Write Playwright E2E browser tests verifying sync button, badge updates, and loading indicators
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Batch Sync Engine & UI Change Tracking' (Protocol in workflow.md) [1da154c]
