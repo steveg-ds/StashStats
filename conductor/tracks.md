@@ -48,3 +48,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [x] **Track: Bi-Directional Ravelry Batch Sync & Unsynced Change Tracking**
   *Link: [./tracks/bidirectional_ravelry_sync_20260801/](./tracks/bidirectional_ravelry_sync_20260801/)*
 
+---
+
+- [ ] **Track: Temperature Blanket Tracking, Ravelry Linkage & Stash Mapping**
+  *Link: [./tracks/temperature_blanket_20260801/](./tracks/temperature_blanket_20260801/)*
+
+
