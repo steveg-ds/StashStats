@@ -14,3 +14,12 @@ def test_create_temperature_ravelry_project():
         )
         assert res is not None
         assert res.get("project", {}).get("id") == 12345
+        # Verify create_ravelry_project was actually called with the correct project name
+        mock_create.assert_called_once()
+        call_args = mock_create.call_args
+        # The name should be passed through
+        assert call_args is not None, "create_ravelry_project must have been called"
+        # Check name was included in the call
+        all_args = list(call_args.args) + list(call_args.kwargs.values())
+        assert any("NYC Temp Blanket" in str(a) for a in all_args), \
+            "create_ravelry_project should be called with the project name"

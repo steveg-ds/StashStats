@@ -118,12 +118,27 @@ class MockDBManager:
     @classmethod
     def get_unsynced_count(cls):
         return 0
-        cls._pending_dates.pop(str(stash_id), None)
+
+    @classmethod
+    def reset(cls):
+        """Reset all class-level mutable state between tests."""
+        cls._history.clear()
+        cls._orig.clear()
+        cls._pending_dates.clear()
+        cls._id_to_event.clear()
+        cls._next_id = 1
 
 # Legacy test_e2e.py is skipped via pytestmark.
 
-# Mock redis module
-sys.modules['redis'] = MagicMock()
+
+@pytest.fixture(autouse=True)
+def _mock_redis_and_reset_db(monkeypatch):
+    """Scope sys.modules redis patch within each test; clear MockDBManager state."""
+    mock_redis = MagicMock()
+    with patch.dict(sys.modules, {'redis': mock_redis}):
+        MockDBManager.reset()
+        yield
+        MockDBManager.reset()
 
 @pytest.fixture(scope="module")
 def dash_thread_server():
