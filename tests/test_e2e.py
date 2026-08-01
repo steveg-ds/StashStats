@@ -90,11 +90,37 @@ class MockDBManager:
         events = cls._history.pop(str(stash_id), None) or []
         for e in events:
             cls._id_to_event.pop(e["id"], None)
+
+    @classmethod
+    def run_migrations(cls):
+        pass
+
+    @classmethod
+    def create_temperature_project(cls, name, location, lat, lon, start_date, end_date, temp_metric="mean", units="F", ravelry_project_id=None):
+        return 1
+
+    @classmethod
+    def mark_dirty(cls, stash_id):
+        pass
+
+    @classmethod
+    def get_dirty_stash_ids(cls):
+        return []
+
+    @classmethod
+    def get_sync_state(cls, stash_id):
+        return None
+
+    @classmethod
+    def mark_synced(cls, stash_id):
+        pass
+
+    @classmethod
+    def get_unsynced_count(cls):
+        return 0
         cls._pending_dates.pop(str(stash_id), None)
 
-# Apply mocks to test environment before import
-import stashies.db
-stashies.db.DBManager = MockDBManager
+# Legacy test_e2e.py is skipped via pytestmark.
 
 # Mock redis module
 sys.modules['redis'] = MagicMock()
