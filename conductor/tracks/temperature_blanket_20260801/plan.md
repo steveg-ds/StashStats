@@ -1,14 +1,14 @@
 # Implementation Plan: Temperature Blanket Tracking, Ravelry Linkage & Stash Mapping
 
-## Phase 1: Open-Meteo Weather Client & Database Schemas
+## Phase 1: Open-Meteo Weather Client & Database Schemas [checkpoint: 0ad5895]
 - [x] Task: Implement Open-Meteo Weather API Client [acfcd63]
     - [x] Create `stashies/weather_client.py` wrapping Open-Meteo archive API supporting °F/°C and Mean/High/Low temp metrics
     - [x] Write unit tests verifying daily temp JSON parsing and caching
-- [ ] Task: Temperature Blanket Database Schema Extensions
-    - [ ] Add `temperature_projects`, `temperature_palette_mapping`, and `temperature_daily_logs` tables in `stashies/db.py`
-    - [ ] Implement `DBManager` helper classmethods for project CRUD operations
-    - [ ] Write unit tests verifying schema creation and DBManager queries
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Open-Meteo Weather Client & Database Schemas' (Protocol in workflow.md)
+- [x] Task: Temperature Blanket Database Schema Extensions [30f4913]
+    - [x] Add `temperature_projects`, `temperature_palette_mapping`, and `temperature_daily_logs` tables in `stashies/db.py`
+    - [x] Implement `DBManager` helper classmethods for project CRUD operations
+    - [x] Write unit tests verifying schema creation and DBManager queries
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Open-Meteo Weather Client & Database Schemas' (Protocol in workflow.md) [0ad5895]
 
 ## Phase 2: Create Temperature Blanket Modal & Configuration Wizard
 - [ ] Task: Implement Multi-Step Temperature Blanket Creation Modal
