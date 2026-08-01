@@ -11,10 +11,10 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Pydantic Sync State Model & Database Schema Extensions' (Protocol in workflow.md) [10ff2cd]
 
 ## Phase 2: Batch Sync Engine & UI Change Tracking
-- [ ] Task: AppController Batch Sync Engine & Stash Card Badges
-    - [ ] Implement `execute_batch_sync` in `AppController`
-    - [ ] Add `Pending Sync` badge logic to `StashCard` and accordion items
-    - [ ] Write unit tests mocking Ravelry API calls for sync execution
+- [x] Task: AppController Batch Sync Engine & Stash Card Badges [e372f22]
+    - [x] Implement `execute_batch_sync` in `AppController`
+    - [x] Add `Pending Sync` badge logic to `StashCard` and accordion items
+    - [x] Write unit tests mocking Ravelry API calls for sync execution
 - [ ] Task: Personal Stash Sync Button & E2E Integration
     - [ ] Add "Sync Now" button, pending badge, and callback to Dash app
     - [ ] Implement 24-hour background sync scheduler
