@@ -55,5 +55,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Codebase Hardening (db rollback, datetime tz, retry, test assertions)**
+- [x] **Track: Codebase Hardening (db rollback, datetime tz, retry, test assertions)**
 *Link: [./tracks/codebase_hardening_20260801/](./tracks/codebase_hardening_20260801/)*
