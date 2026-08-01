@@ -1,9 +1,9 @@
 # Implementation Plan: Bi-Directional Ravelry Batch Sync & Unsynced Change Tracking
 
 ## Phase 1: Pydantic Sync State Model & Database Schema Extensions
-- [ ] Task: Implement Pydantic V2 StashSyncState model
-    - [ ] Create `stashies/dataclasses/stash_sync_state.py` with Pydantic V2 validation
-    - [ ] Write unit tests verifying model validation and default values
+- [x] Task: Implement Pydantic V2 StashSyncState model [1c4c304]
+    - [x] Create `stashies/dataclasses/stash_sync_state.py` with Pydantic V2 validation
+    - [x] Write unit tests verifying model validation and default values
 - [ ] Task: Database Schema & DBManager Extensions
     - [ ] Add `stash_sync_state` table to DBManager migrations
     - [ ] Implement `mark_dirty`, `get_dirty_stash_ids`, `get_sync_state`, `mark_synced`, and `get_unsynced_count` in `DBManager`
