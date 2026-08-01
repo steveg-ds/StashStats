@@ -37,10 +37,26 @@ This specification details the design for bi-directional synchronization between
 
 ---
 
-## 3. Database Schema Changes (`stashies/db.py`)
+## 3. Database Schema Extensions & Pydantic V2 Validation (`stashies/`)
 
-Create table `stash_sync_state`:
+### 3.1 Pydantic Model (`stashies/dataclasses/stash_sync_state.py`)
+All sync records and payloads MUST use strict Pydantic V2 validation:
 
+```python
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field
+
+class StashSyncState(BaseModel):
+    """Pydantic model enforcing type validation for stash sync tracking state."""
+    stash_id: str
+    is_dirty: bool = False
+    last_synced_at: Optional[datetime] = None
+    sync_error: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.now)
+```
+
+### 3.2 Database Table Schema (`stashies/db.py`)
 ```sql
 CREATE TABLE IF NOT EXISTS stash_sync_state (
     stash_id VARCHAR(50) PRIMARY KEY,
@@ -51,11 +67,14 @@ CREATE TABLE IF NOT EXISTS stash_sync_state (
 );
 ```
 
-### Operations
-- `DBManager.mark_dirty(stash_id: str)`: Sets `is_dirty = TRUE` for target `stash_id`.
-- `DBManager.get_dirty_stash_ids() -> List[str]`: Retrieves all stash IDs with pending changes.
-- `DBManager.mark_synced(stash_id: str)`: Sets `is_dirty = FALSE`, updates `last_synced_at = NOW()`, and clears `sync_error`.
-- `DBManager.get_unsynced_count() -> int`: Returns total number of pending items.
+### 3.3 DBManager API Extensions (Validated via Pydantic)
+| Method | Description |
+|---|---|
+| `mark_dirty(stash_id: str)` | Sets `is_dirty = TRUE` for target stash entry; validates via `StashSyncState`. |
+| `get_dirty_stash_ids() -> List[str]` | Retrieves list of all `stash_id`s requiring sync dispatch. |
+| `get_sync_state(stash_id: str) -> Optional[StashSyncState]` | Fetches sync record, parsed via `StashSyncState.model_validate()`. |
+| `mark_synced(stash_id: str)` | Sets `is_dirty = FALSE`, updates `last_synced_at = NOW()`, clears errors. |
+| `get_unsynced_count() -> int` | Returns count of pending local edits for global UI badges. |
 
 ---
 
