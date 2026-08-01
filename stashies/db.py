@@ -3,6 +3,7 @@ from stashies.base import Base
 import psycopg2
 import psycopg2.pool
 from typing import Optional
+from stashies.dataclasses.stash_sync_state import StashSyncState
 
 
 class PostgresPool(Base):
@@ -78,6 +79,15 @@ class DBManager(Base):
                     skeins DOUBLE PRECISION NOT NULL,
                     grams DOUBLE PRECISION NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """)
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS stash_sync_state (
+                    stash_id VARCHAR(50) PRIMARY KEY,
+                    is_dirty BOOLEAN DEFAULT FALSE,
+                    last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    sync_error TEXT DEFAULT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
                 """)
                 cur.execute("""
@@ -367,3 +377,110 @@ class DBManager(Base):
         date = cls._pending_dates.pop(str(stash_id), None)
         cls.LOGGER.debug(f"Popped pending usage date for stash_id={stash_id}: {date}")
         return date
+
+    @classmethod
+    def mark_dirty(cls, stash_id: str):
+        """Mark a stash entry as having unpushed local changes."""
+        cls.LOGGER.debug(f"Marking stash_id={stash_id} as dirty")
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute("""
+                INSERT INTO stash_sync_state (stash_id, is_dirty, updated_at)
+                VALUES (%s, TRUE, CURRENT_TIMESTAMP)
+                ON CONFLICT (stash_id) DO UPDATE SET is_dirty = TRUE, updated_at = CURRENT_TIMESTAMP
+                """, (str(stash_id),))
+                conn.commit()
+            finally:
+                cur.close()
+        except Exception as e:
+            cls.LOGGER.error(f"Failed to mark stash {stash_id} dirty: {e}")
+        finally:
+            cls.get_pool().putconn(conn)
+
+    @classmethod
+    def get_dirty_stash_ids(cls) -> list:
+        """Retrieve list of stash IDs with pending local changes."""
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute("SELECT stash_id FROM stash_sync_state WHERE is_dirty = TRUE")
+                rows = cur.fetchall()
+                return [str(r[0]) for r in rows]
+            finally:
+                cur.close()
+        except Exception as e:
+            cls.LOGGER.error(f"Failed to fetch dirty stash IDs: {e}")
+            return []
+        finally:
+            cls.get_pool().putconn(conn)
+
+    @classmethod
+    def get_sync_state(cls, stash_id: str) -> Optional[StashSyncState]:
+        """Retrieve sync state record parsed via StashSyncState Pydantic model."""
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute(
+                    "SELECT stash_id, is_dirty, last_synced_at, sync_error, updated_at FROM stash_sync_state WHERE stash_id = %s",
+                    (str(stash_id),)
+                )
+                row = cur.fetchone()
+                if row:
+                    return StashSyncState(
+                        stash_id=row[0],
+                        is_dirty=row[1],
+                        last_synced_at=row[2],
+                        sync_error=row[3],
+                        updated_at=row[4]
+                    )
+                return None
+            finally:
+                cur.close()
+        except Exception as e:
+            cls.LOGGER.error(f"Error fetching sync state for stash {stash_id}: {e}")
+            return None
+        finally:
+            cls.get_pool().putconn(conn)
+
+    @classmethod
+    def mark_synced(cls, stash_id: str):
+        """Mark a stash entry as successfully synced with Ravelry API."""
+        cls.LOGGER.debug(f"Marking stash_id={stash_id} as synced")
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute("""
+                UPDATE stash_sync_state 
+                SET is_dirty = FALSE, last_synced_at = CURRENT_TIMESTAMP, sync_error = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE stash_id = %s
+                """, (str(stash_id),))
+                conn.commit()
+            finally:
+                cur.close()
+        except Exception as e:
+            cls.LOGGER.error(f"Failed to mark stash {stash_id} synced: {e}")
+        finally:
+            cls.get_pool().putconn(conn)
+
+    @classmethod
+    def get_unsynced_count(cls) -> int:
+        """Return total count of pending unsynced stash entries."""
+        conn = cls.get_pool().getconn()
+        try:
+            cur = conn.cursor()
+            try:
+                cur.execute("SELECT COUNT(*) FROM stash_sync_state WHERE is_dirty = TRUE")
+                row = cur.fetchone()
+                return row[0] if row else 0
+            finally:
+                cur.close()
+        except Exception as e:
+            cls.LOGGER.error(f"Failed to fetch unsynced count: {e}")
+            return 0
+        finally:
+            cls.get_pool().putconn(conn)
