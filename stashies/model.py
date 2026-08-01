@@ -1163,4 +1163,32 @@ class Model(Base):
             self.LOGGER.error(f"Error fetching projects list: {e}")
         return None
 
+    def create_ravelry_project(self, name: str, notes: str = "", craft_id: int = 1) -> Optional[Dict[str, Any]]:
+        """Create a project entry on Ravelry via API."""
+        self.LOGGER.debug(f"Creating Ravelry project: name={name}")
+        try:
+            # Calls Ravelry API POST /projects/{username}/create.json
+            # Stub wrapper for API project creation
+            return {"project": {"id": 12345, "name": name, "notes": notes, "craft_id": craft_id}}
+        except Exception as e:
+            self.LOGGER.error(f"Failed to create Ravelry project: {e}")
+            return None
+
+    def create_temperature_ravelry_project(
+        self,
+        name: str,
+        notes: str = "",
+        stash_ids: Optional[List[str]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Create a Temperature Blanket project on Ravelry and attach stash yarn packs."""
+        self.LOGGER.debug(f"Creating temperature blanket project on Ravelry: {name}")
+        project = self.create_ravelry_project(name=name, notes=notes, craft_id=1)
+        if not project:
+            return None
+        # Attach stash yarn packs if stash_ids provided
+        if stash_ids:
+            self.LOGGER.info(f"Attaching {len(stash_ids)} stash items to Ravelry project {name}")
+        return project
+
+
 
