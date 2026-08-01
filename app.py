@@ -430,10 +430,11 @@ def handle_manual_sync(n_clicks, trigger_data):
 
 
 if __name__ == "__main__":
+    debug_mode = os.getenv('APP_DEBUG', 'false').lower() == 'true'
     app.run(
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", "8050")),
-        debug=True,
-        dev_tools_hot_reload=True,
+        debug=debug_mode,
+        dev_tools_hot_reload=debug_mode,
     )
 

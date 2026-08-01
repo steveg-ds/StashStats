@@ -29,3 +29,35 @@ def test_weather_client_fetch_historical():
         assert "temp_mean" in df_result[0]
         assert "temp_max" in df_result[0]
         assert "temp_min" in df_result[0]
+
+
+def test_weather_client_connection_error_returns_empty():
+    """ConnectionError returns empty list (retry exhausted, error is caught)."""
+    client = WeatherClient()
+    with patch.object(client._session, 'get', side_effect=ConnectionError("Network unreachable")):
+        result = client.fetch_historical_temperatures(
+            lat=40.71, lon=-74.00, start_date="2026-01-01", end_date="2026-01-02"
+        )
+    assert result == []
+
+
+def test_weather_client_missing_daily_key_raises_value_error():
+    """Malformed JSON (missing 'daily' key) raises ValueError."""
+    client = WeatherClient()
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"latitude": 40.71}  # no 'daily' key
+    with patch.object(client._session, 'get', return_value=mock_resp):
+        with pytest.raises(ValueError, match="missing 'daily'"):
+            client.fetch_historical_temperatures(
+                lat=40.71, lon=-74.00, start_date="2026-01-01", end_date="2026-01-02"
+            )
+
+
+def test_weather_client_uses_retry_session():
+    """WeatherClient._session has retry-enabled HTTPAdapter."""
+    from requests.adapters import HTTPAdapter
+    client = WeatherClient()
+    assert hasattr(client, '_session')
+    adapter = client._session.get_adapter('https://')
+    assert isinstance(adapter, HTTPAdapter)
+    assert adapter.max_retries.total == 3

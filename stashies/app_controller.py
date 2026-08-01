@@ -402,7 +402,7 @@ class AppController(Base):
                             ts = dt.timestamp()
                             if ts > max_ts:
                                 max_ts = ts
-                        except Exception:
+                        except ValueError:
                             pass
                 return max_ts
 
@@ -910,7 +910,7 @@ class AppController(Base):
         try:
             triggered_obj = json.loads(triggered_id.split(".")[0])
             btn_index = triggered_obj.get("index", "")
-        except Exception:
+        except (json.JSONDecodeError, KeyError, ValueError):
             return (no_update,) * 16
 
         sd = None
@@ -942,7 +942,7 @@ class AppController(Base):
         if created_at_raw:
             try:
                 orig_date = created_at_raw.split(" ")[0].replace("/", "-")
-            except Exception:
+            except (AttributeError, ValueError, IndexError):
                 orig_date = str(created_at_raw)
 
         orig_vals = sd.get("original_values") or {}

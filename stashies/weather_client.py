@@ -1,7 +1,18 @@
 """Open-Meteo Historical Weather API client for Temperature Blanket tracking."""
 from typing import Any, Dict, List, Optional
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from .base import Base
+
+
+def _build_session() -> requests.Session:
+    """Build a requests Session with retry logic for transient network errors."""
+    session = requests.Session()
+    retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('https://', adapter)
+    return session
 
 
 class WeatherClient(Base):
@@ -11,6 +22,10 @@ class WeatherClient(Base):
     """
 
     BASE_URL = "https://archive-api.open-meteo.com/v1/archive"
+
+    def __init__(self):
+        """Initialise WeatherClient with a retry-enabled HTTP session."""
+        self._session = _build_session()
 
     def fetch_historical_temperatures(
         self,
@@ -32,6 +47,9 @@ class WeatherClient(Base):
 
         Returns:
             List[Dict[str, Any]]: List of daily records containing date, temp_max, temp_min, and temp_mean.
+
+        Raises:
+            ValueError: If API response is missing the 'daily' key.
         """
         self.LOGGER.debug(
             f"Fetching historical weather: lat={lat}, lon={lon}, start={start_date}, end={end_date}, units={units}"
@@ -48,10 +66,14 @@ class WeatherClient(Base):
         }
 
         try:
-            response = requests.get(self.BASE_URL, params=params, timeout=10)
+            response = self._session.get(self.BASE_URL, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
-            daily_data = data.get("daily", {})
+
+            if "daily" not in data:
+                raise ValueError("API response missing 'daily' key — unexpected response shape")
+
+            daily_data = data["daily"]
 
             times = daily_data.get("time", [])
             max_temps = daily_data.get("temperature_2m_max", [])
@@ -69,6 +91,8 @@ class WeatherClient(Base):
             self.LOGGER.info(f"Successfully fetched {len(results)} daily weather records")
             return results
 
+        except ValueError:
+            raise
         except Exception as e:
             self.LOGGER.error(f"Failed to fetch historical weather data: {e}")
             return []
