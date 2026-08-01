@@ -388,6 +388,24 @@ def delete_usage_entry(delete_clicks, stash_store_data, trigger_data):
         return new_table, msg, no_update
 
 
+@callback(
+    Output("stash-sync-status-msg", "children"),
+    Output("stash-sync-badge", "children"),
+    Output("stash-sync-badge", "color"),
+    Output("stash-update-trigger", "data", allow_duplicate=True),
+    Input("stash-sync-btn", "n_clicks"),
+    State("stash-update-trigger", "data"),
+    prevent_initial_call=True,
+)
+def handle_manual_sync(n_clicks, trigger_data):
+    if not n_clicks:
+        raise PreventUpdate
+    count = CONTROLLER.execute_batch_sync()
+    new_trigger = (trigger_data or 0) + 1
+    msg = f"Synced {count} items successfully."
+    return msg, "0 pending", "secondary", new_trigger
+
+
 if __name__ == "__main__":
     app.run(
         host=os.getenv("HOST", "0.0.0.0"),

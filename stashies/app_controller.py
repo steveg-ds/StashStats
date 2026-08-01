@@ -276,10 +276,25 @@ class AppController(Base):
             )
         )
 
+        sync_count = self.MODEL.get_unsynced_count()
+        badge_text = f"{sync_count} pending" if sync_count > 0 else "0 pending"
+        sync_badge_color = "warning" if sync_count > 0 else "secondary"
+
+        sync_controls = dbc.Row([
+            dbc.Col([
+                dbc.Button([
+                    html.Span("Sync Now"),
+                    dbc.Badge(badge_text, id="stash-sync-badge", color=sync_badge_color, className="ms-2")
+                ], id="stash-sync-btn", color="primary", size="sm", className="me-2"),
+                html.Span("Last synced: Today", id="stash-sync-status-msg", className="text-muted small align-middle")
+            ], width="auto")
+        ], className="mb-2 align-items-center")
+
         return html.Div(
             [
                 html.H4("My Personal Stash", className="mt-3 text-success"),
                 html.P("Browse and filter your stashed yarn collection."),
+                sync_controls,
                 filter_row,
                 wrap_with_loading(
                     html.Div(id="stash-list-container", children=[
