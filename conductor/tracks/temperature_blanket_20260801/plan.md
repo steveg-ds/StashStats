@@ -11,10 +11,10 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Open-Meteo Weather Client & Database Schemas' (Protocol in workflow.md) [0ad5895]
 
 ## Phase 2: Create Temperature Blanket Modal & Configuration Wizard
-- [ ] Task: Implement Multi-Step Temperature Blanket Creation Modal
-    - [ ] Create `stashies/components/temperature_modal.py` with 5 wizard steps (Location/Dates -> Metric/Units -> Tiers -> Stash/New Yarns -> Ravelry Link)
-    - [ ] Implement yardage requirement calculator comparing against `DBManager` stash totals
-    - [ ] Write unit tests for wizard step callbacks and yardage calculations
+- [x] Task: Implement Multi-Step Temperature Blanket Creation Modal [68a351b]
+    - [x] Create `stashies/components/temperature_modal.py` with 5 wizard steps (Location/Dates -> Metric/Units -> Tiers -> Stash/New Yarns -> Ravelry Link)
+    - [x] Implement yardage requirement calculator comparing against `DBManager` stash totals
+    - [x] Write unit tests for wizard step callbacks and yardage calculations
 - [ ] Task: Ravelry Project Creation & Stash Linking
     - [ ] Implement Ravelry project POST helper in `Model` / `RavelryClient` linking stash yarn packs
     - [ ] Write unit tests mocking Ravelry API responses
