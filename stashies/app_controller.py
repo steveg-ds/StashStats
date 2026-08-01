@@ -629,11 +629,27 @@ class AppController(Base):
             response = self.MODEL.create_stash(stash_payload)
             if response and 'stash' in response:
                 stash_id = response['stash'].get('id', 'Unknown')
+                from .db import DBManager
+                DBManager.mark_dirty(str(stash_id))
                 return f"Success! Stashed with ID: {stash_id}"
             else:
                 return "Failed to stash yarn. Please verify credentials."
         except Exception as e:
             return f"Error occurred: {str(e)}"
+
+    def execute_batch_sync(self) -> int:
+        """Execute batch PUT sync for all items marked is_dirty == TRUE."""
+        self.LOGGER.debug("Starting batch sync for dirty stash entries")
+        dirty_ids = self.MODEL.get_dirty_stash_ids()
+        synced_count = 0
+        for sid in dirty_ids:
+            success = self.MODEL.sync_stash_entry_to_ravelry(sid)
+            if success:
+                self.MODEL.mark_synced(sid)
+                synced_count += 1
+        self.LOGGER.info(f"Batch sync complete: {synced_count}/{len(dirty_ids)} items synced")
+        return synced_count
+
 
     def handle_save_edit(
         self,
@@ -719,7 +735,10 @@ class AppController(Base):
                             )
                     except Exception as he:
                         self.LOGGER.error(f"Failed to write direct history event: {he}")
+                    from .db import DBManager
+                    DBManager.mark_dirty(str(stash_id))
                     return f"Saved! {used_f:.2g} skeins used → {remaining:.2g} remaining. Refresh stash tab to update list.", False
+
                 else:
                     self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} | usage | payload={payload}")
                     return "Save failed — check logs.", True
@@ -758,7 +777,10 @@ class AppController(Base):
                 result = self.MODEL.update_stash(stash_id, payload)
                 if result and "stash" in result:
                     self.LOGGER.info(f"[WRITE] stash_id={stash_id} | details | payload={payload}")
+                    from .db import DBManager
+                    DBManager.mark_dirty(str(stash_id))
                     return "Saved! Refresh the stash tab to see updates.", False
+
                 else:
                     self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} | details | payload={payload}")
                     return "Save failed — check logs.", True

@@ -100,14 +100,20 @@ class StashCard(BaseComponent):
         else:
             quantity_element = html.Span([html.Strong("Quantity: "), f"{sk:.1f} skeins ({y:,.0f} yds / {m:,.0f} m / {g:,.0f} g)"])
 
+        stash_id_str = str(s.get("id", ""))
+        from ..model import Model
+        sync_state = Model.get_sync_state(stash_id_str)
+
+        card_badges = []
+        if sync_state and sync_state.is_dirty:
+            card_badges.append(dbc.Badge("Pending Sync", color="warning", className="me-2"))
+        card_badges.append(html.Span(status_name, className=f"badge bg-{badge_color} mb-2 text-white"))
+
         card_body_contents = [
             html.Div(
                 [
                     html.H5(s.get("name") or "Unnamed Yarn", className="card-title text-success mb-1 me-2"),
-                    html.Span(
-                        status_name,
-                        className=f"badge bg-{badge_color} mb-2 text-white"
-                    )
+                    html.Div(card_badges, className="d-flex align-items-center flex-wrap")
                 ],
                 className="d-flex justify-content-between align-items-start"
             ),
@@ -239,6 +245,19 @@ class StashCard(BaseComponent):
             }
         )
 
+        from ..model import Model
+        sync_state = Model.get_sync_state(stash_id_str)
+        pending_badge = dbc.Badge("Pending Sync", color="warning", className="me-2") if (sync_state and sync_state.is_dirty) else None
+
+        col_elements = []
+        if pending_badge:
+            col_elements.append(pending_badge)
+        col_elements.extend([
+            quantity_element,
+            html.Span(status_name, className=f"badge bg-{badge_color} ms-2 text-white"),
+            edit_btn
+        ])
+
         row_content = dbc.Row(
             [
                 dbc.Col(
@@ -251,11 +270,7 @@ class StashCard(BaseComponent):
                     className="d-flex align-items-center flex-wrap"
                 ),
                 dbc.Col(
-                    [
-                        quantity_element,
-                        html.Span(status_name, className=f"badge bg-{badge_color} ms-2 text-white"),
-                        edit_btn
-                    ],
+                    col_elements,
                     xs=12, md=6,
                     className="d-flex align-items-center justify-content-md-end mt-2 mt-md-0"
                 )

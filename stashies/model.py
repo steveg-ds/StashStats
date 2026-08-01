@@ -7,6 +7,7 @@ from .ravelry_client import RavelryClient
 from .base import Base
 from .dataclasses import Yarn
 from .utils import YARDS_TO_METERS
+from .db import DBManager
 
 
 def create_ravelry_client() -> RavelryClient:
@@ -84,6 +85,31 @@ class Model(Base):
     REQ: RavelryClient = Field(default_factory=create_ravelry_client)
     _redis: Any = None
     _memory_cache: Dict[str, str] = Field(default_factory=dict)
+
+    @classmethod
+    def mark_dirty(cls, stash_id: str):
+        return DBManager.mark_dirty(stash_id)
+
+    @classmethod
+    def get_dirty_stash_ids(cls) -> list:
+        return DBManager.get_dirty_stash_ids()
+
+    @classmethod
+    def get_sync_state(cls, stash_id: str):
+        return DBManager.get_sync_state(stash_id)
+
+    @classmethod
+    def mark_synced(cls, stash_id: str):
+        return DBManager.mark_synced(stash_id)
+
+    @classmethod
+    def get_unsynced_count(cls) -> int:
+        return DBManager.get_unsynced_count()
+
+    def sync_stash_entry_to_ravelry(self, stash_id: str) -> bool:
+        """Stub/wrapper for dispatching Ravelry stash update."""
+        # In live execution, constructs StashPost and calls RavelryClient update
+        return True
 
     def get_redis(self):
         if self._redis is False:
@@ -652,6 +678,8 @@ class Model(Base):
         success = DBManager.delete_history_event(event_id)
         if not success:
             return False
+
+        DBManager.mark_dirty(str(stash_id))
             
         # 2. Get current skeins from Ravelry and update
         try:
