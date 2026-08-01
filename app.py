@@ -365,7 +365,8 @@ def delete_usage_entry(delete_clicks, stash_store_data, trigger_data):
     try:
         triggered_obj = json.loads(triggered_id.split(".")[0])
         event_id = triggered_obj.get("index", "")
-    except Exception:
+    except (json.JSONDecodeError, KeyError, ValueError) as e:
+        LOGGER.debug(f"Failed to parse delete-usage-btn ID '{triggered_id}': {e}")
         raise PreventUpdate
         
     if not event_id:
@@ -378,7 +379,7 @@ def delete_usage_entry(delete_clicks, stash_store_data, trigger_data):
     success = CONTROLLER.MODEL.delete_stash_history_event(int(event_id))
     if success:
         new_table = CONTROLLER.build_history_table(str(actual_id))
-        msg = html.Span("Usage entry deleted and quantities reverted.", className="text-success")
+        msg = html.Span("Usage entry deleted.", className="text-success")
         new_trigger = (trigger_data or 0) + 1
         return new_table, msg, new_trigger
     else:

@@ -873,7 +873,7 @@ class AppController(Base):
 
         clicks = None
         for i, btn_id in enumerate(btn_ids or []):
-            if str(btn_id.get("index", "")) == str(btn_index):
+            if i < len(btn_ids) and str(btn_ids[i].get("index", "")) == str(btn_index):
                 if i < len(edit_clicks):
                     clicks = edit_clicks[i]
                 break

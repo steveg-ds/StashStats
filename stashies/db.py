@@ -53,7 +53,7 @@ class DBManager(Base):
         """
         Create target database tables and indexes if they do not exist.
         """
-        cls.LOGGER.debug("Starting SQLite database migrations")
+        cls.LOGGER.debug("Starting Postgres database migrations")
         conn = cls.get_pool().getconn()
         try:
             cur = conn.cursor()
@@ -84,7 +84,7 @@ class DBManager(Base):
                 CREATE INDEX IF NOT EXISTS idx_history_stash_id ON stash_history(stash_id);
                 """)
                 conn.commit()
-                cls.LOGGER.info("SQLite database migrations executed successfully.")
+                cls.LOGGER.info("Postgres database migrations executed successfully.")
             finally:
                 cur.close()
         except Exception as e:
@@ -190,7 +190,7 @@ class DBManager(Base):
                 cur.execute("DELETE FROM original_values WHERE stash_id = %s", (str(stash_id),))
                 cur.execute("DELETE FROM stash_history WHERE stash_id = %s", (str(stash_id),))
                 conn.commit()
-                cls.LOGGER.info(f"SQLite database entries deleted for stash_id={stash_id}")
+                cls.LOGGER.info(f"Postgres database entries deleted for stash_id={stash_id}")
             finally:
                 cur.close()
         except Exception as e:
