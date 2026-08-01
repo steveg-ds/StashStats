@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from pydantic import BaseModel, Field
 
@@ -8,4 +8,4 @@ class StashSyncState(BaseModel):
     is_dirty: bool = False
     last_synced_at: Optional[datetime] = None
     sync_error: Optional[str] = None
-    updated_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

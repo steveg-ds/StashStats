@@ -218,6 +218,7 @@ class DBManager(Base):
             finally:
                 cur.close()
         except Exception as e:
+            conn.rollback()
             cls.LOGGER.error(f"Error saving original_values for stash {stash_id}: {e}")
         finally:
             cls.get_pool().putconn(conn)
@@ -239,6 +240,7 @@ class DBManager(Base):
             finally:
                 cur.close()
         except Exception as e:
+            conn.rollback()
             cls.LOGGER.error(f"Failed to delete stash data for stash_id={stash_id}: {e}")
         finally:
             cls.get_pool().putconn(conn)
@@ -293,6 +295,7 @@ class DBManager(Base):
             finally:
                 cur.close()
         except Exception as e:
+            conn.rollback()
             cls.LOGGER.error(f"Error deleting history event {event_id}: {e}")
             return False
         finally:
@@ -392,6 +395,7 @@ class DBManager(Base):
             finally:
                 cur.close()
         except Exception as e:
+            conn.rollback()
             cls.LOGGER.error(f"Error saving stash_history event for stash {stash_id}: {e}")
         finally:
             cls.get_pool().putconn(conn)
@@ -430,6 +434,7 @@ class DBManager(Base):
             finally:
                 cur.close()
         except Exception as e:
+            conn.rollback()
             cls.LOGGER.error(f"Failed to mark stash {stash_id} dirty: {e}")
         finally:
             cls.get_pool().putconn(conn)
@@ -498,6 +503,7 @@ class DBManager(Base):
             finally:
                 cur.close()
         except Exception as e:
+            conn.rollback()
             cls.LOGGER.error(f"Failed to mark stash {stash_id} synced: {e}")
         finally:
             cls.get_pool().putconn(conn)
@@ -551,6 +557,7 @@ class DBManager(Base):
             finally:
                 cur.close()
         except Exception as e:
+            conn.rollback()
             cls.LOGGER.error(f"Failed to create temperature project: {e}")
             return None
         finally:
