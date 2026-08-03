@@ -91,41 +91,6 @@ class DBManager(Base):
                 );
                 """)
                 cur.execute("""
-                CREATE TABLE IF NOT EXISTS temperature_projects (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL,
-                    ravelry_project_id VARCHAR(50),
-                    location VARCHAR(255) NOT NULL,
-                    lat DOUBLE PRECISION NOT NULL,
-                    lon DOUBLE PRECISION NOT NULL,
-                    start_date DATE NOT NULL,
-                    end_date DATE NOT NULL,
-                    temp_metric VARCHAR(20) DEFAULT 'mean',
-                    units VARCHAR(10) DEFAULT 'F',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-                """)
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS temperature_palette_mapping (
-                    id SERIAL PRIMARY KEY,
-                    project_id INTEGER REFERENCES temperature_projects(id) ON DELETE CASCADE,
-                    min_temp DOUBLE PRECISION NOT NULL,
-                    max_temp DOUBLE PRECISION NOT NULL,
-                    stash_id VARCHAR(50),
-                    new_yarn_name VARCHAR(255),
-                    hex_color VARCHAR(10)
-                );
-                """)
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS temperature_daily_logs (
-                    id SERIAL PRIMARY KEY,
-                    project_id INTEGER REFERENCES temperature_projects(id) ON DELETE CASCADE,
-                    log_date DATE NOT NULL,
-                    temperature DOUBLE PRECISION NOT NULL,
-                    is_completed BOOLEAN DEFAULT FALSE
-                );
-                """)
-                cur.execute("""
                 CREATE INDEX IF NOT EXISTS idx_history_stash_id ON stash_history(stash_id);
                 """)
                 conn.commit()
@@ -524,41 +489,4 @@ class DBManager(Base):
             cls.LOGGER.error(f"Failed to fetch unsynced count: {e}")
             return 0
         finally:
-            cls.get_pool().putconn(conn)
-
-    @classmethod
-    def create_temperature_project(
-        cls,
-        name: str,
-        location: str,
-        lat: float,
-        lon: float,
-        start_date: str,
-        end_date: str,
-        temp_metric: str = "mean",
-        units: str = "F",
-        ravelry_project_id: Optional[str] = None
-    ) -> Optional[int]:
-        """Create a new temperature blanket project record."""
-        cls.LOGGER.debug(f"Creating temperature project: name={name}, location={location}")
-        conn = cls.get_pool().getconn()
-        try:
-            cur = conn.cursor()
-            try:
-                cur.execute("""
-                INSERT INTO temperature_projects 
-                (name, location, lat, lon, start_date, end_date, temp_metric, units, ravelry_project_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-                """, (name, location, lat, lon, start_date, end_date, temp_metric, units, ravelry_project_id))
-                row = cur.fetchone()
-                conn.commit()
-                return row[0] if row else None
-            finally:
-                cur.close()
-        except Exception as e:
-            conn.rollback()
-            cls.LOGGER.error(f"Failed to create temperature project: {e}")
-            return None
-        finally:
-            cls.get_pool().putconn(conn)
+              cls.get_pool().putconn(conn)
