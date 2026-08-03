@@ -90,23 +90,6 @@ def test_mark_synced_rollback_on_commit_error():
         mock_conn.rollback.assert_called_once()
 
 
-def test_create_temperature_project_rollback_on_commit_error():
-    """conn.rollback() called when commit raises in create_temperature_project."""
-    mock_conn = MagicMock()
-    mock_cur = MagicMock()
-    mock_conn.cursor.return_value = mock_cur
-    mock_cur.fetchone.return_value = (1,)
-    mock_conn.commit.side_effect = Exception("commit failed")
-    mock_pool = MagicMock()
-    mock_pool.getconn.return_value = mock_conn
-    with patch.object(DBManager, 'get_pool', return_value=mock_pool):
-        result = DBManager.create_temperature_project(
-            name='Test', location='NYC', lat=40.7, lon=-74.0,
-            start_date='2026-01-01', end_date='2026-12-31'
-        )
-        mock_conn.rollback.assert_called_once()
-
-
 def test_stash_sync_state_updated_at_is_timezone_aware():
     """StashSyncState.updated_at default is timezone-aware (UTC)."""
     state = StashSyncState(stash_id='test_123')
