@@ -21,9 +21,6 @@ StashStats is a Dash-based web application designed to help yarn enthusiasts sea
 4. **Search & Cache**:
    - Query patterns and yarns via the Ravelry API.
    - Local-first cache using PostgreSQL to ensure fast performance and query resilience.
-5. **Temperature Blanket Builder & Tracker**:
-   - Design 365-day temperature blankets by fetching historical weather data via Open-Meteo API.
-   - Map temperature intervals to Ravelry stash items or new yarns, calculate required yardage, and log daily row completions.
 
 ## Ravelry API Integration
 - **Bi-directional Sync**: Edits made to yarn quantities, notes, or usage dates in the StashStats interface sync back to the user's Ravelry account to maintain consistency.
