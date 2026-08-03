@@ -20,10 +20,10 @@
     - [x] Write unit tests mocking Ravelry API responses
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Create Temperature Blanket Modal & Configuration Wizard' (Protocol in workflow.md) [166f9c5]
 
-## Phase 3: Dash UI Tab & 365-Day Grid Visualization [checkpoint: 8b92d32]
-- [x] Task: Implement Temperature Blanket Tab Layout & 365-Day Row Grid [52966f6]
-    - [x] Create `stashies/components/temperature_blanket.py` with row-by-row color grid and temperature legend
-    - [x] Add `Temperature Blanket` tab (`tab-temperature-blanket`) to `AppController` and `app.py`
-    - [x] Implement row completion checkboxes and stash usage logging callbacks
-    - [x] Write Playwright E2E browser tests verifying grid renders, modal flow, and row log checkboxes
-- [x] Task: Conductor - User Manual Verification 'Phase 3: Dash UI Tab & 365-Day Grid Visualization' (Protocol in workflow.md) [8b92d32]
+## Phase 3: Dash UI Tab & 365-Day Grid Visualization
+- [ ] Task: Implement Temperature Blanket Tab Layout & 365-Day Row Grid
+    - [ ] Create `stashies/components/temperature_blanket.py` with row-by-row color grid and temperature legend
+    - [ ] Add `Temperature Blanket` tab (`tab-temperature-blanket`) to `AppController` and `app.py`
+    - [ ] Implement row completion checkboxes and stash usage logging callbacks
+    - [ ] Write Playwright E2E browser tests verifying grid renders, modal flow, and row log checkboxes
+- [ ] Task: Conductor - User Manual Verification 'Phase 3: Dash UI Tab & 365-Day Grid Visualization' (Protocol in workflow.md)
