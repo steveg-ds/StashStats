@@ -10,7 +10,6 @@ from .components import (
     Header, Search, SearchResults, StashCard, EditModal, AnalyticsComponent,
     ProjectsComponent
 )
-from .components.temperature_blanket import TemperatureBlanketComponent
 from .model import Model
 from .utils.loading_helper import wrap_with_loading
 
@@ -113,16 +112,6 @@ class AppController(Base):
                             children=[
                                 html.Div(style={"height": "20px"}),
                                 dbc.Container(id="projects-tab-content")
-                            ],
-                            style={"backgroundColor": "#222", "color": "#fff"},
-                            selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
-                        ),
-                        dcc.Tab(
-                            label="Temperature Blanket",
-                            value="tab-temperature-blanket",
-                            children=[
-                                html.Div(style={"height": "20px"}),
-                                dbc.Container(id="temperature-blanket-tab-content")
                             ],
                             style={"backgroundColor": "#222", "color": "#fff"},
                             selected_style={"backgroundColor": "#333", "color": "#00bc8c"}
@@ -984,10 +973,6 @@ class AppController(Base):
         if not projects:
             return [dbc.Col(html.Div("No projects found or API request failed.", className="text-warning mt-3"))]
         return [self.PROJECTS.build_project_card(p) for p in projects]
-
-    def render_temperature_blanket_tab_layout(self) -> html.Div:
-        """Render layout structure for Temperature Blanket tab."""
-        return TemperatureBlanketComponent().render_layout()
 
 
 

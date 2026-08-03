@@ -90,14 +90,11 @@ class MockDBManager:
         events = cls._history.pop(str(stash_id), None) or []
         for e in events:
             cls._id_to_event.pop(e["id"], None)
+        cls._pending_dates.pop(str(stash_id), None)
 
     @classmethod
     def run_migrations(cls):
         pass
-
-    @classmethod
-    def create_temperature_project(cls, name, location, lat, lon, start_date, end_date, temp_metric="mean", units="F", ravelry_project_id=None):
-        return 1
 
     @classmethod
     def mark_dirty(cls, stash_id):
@@ -129,6 +126,10 @@ class MockDBManager:
         cls._next_id = 1
 
 # Legacy test_e2e.py is skipped via pytestmark.
+
+# Apply mocks to test environment before import
+import stashies.db
+stashies.db.DBManager = MockDBManager
 
 
 @pytest.fixture(autouse=True)

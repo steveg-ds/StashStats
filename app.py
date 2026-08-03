@@ -310,29 +310,6 @@ def load_projects_list(tab_content, tab_value):
 
 
 @callback(
-    Output("temperature-blanket-tab-content", "children"),
-    Input("app-tabs", "value"),
-)
-def render_temperature_blanket_tab(tab_value):
-    if tab_value != "tab-temperature-blanket":
-        return no_update
-    return CONTROLLER.render_temperature_blanket_tab_layout()
-
-
-@callback(
-    Output("temperature-project-modal", "is_open"),
-    Input("open-temp-modal-btn", "n_clicks"),
-    Input("temp-modal-cancel-btn", "n_clicks"),
-    State("temperature-project-modal", "is_open"),
-    prevent_initial_call=True,
-)
-def toggle_temperature_modal(open_clicks, cancel_clicks, is_open):
-    if open_clicks or cancel_clicks:
-        return not is_open
-    return is_open
-
-
-@callback(
     Output("edit-stash-delete-confirm", "displayed"),
     Input("edit-stash-delete-btn", "n_clicks"),
     prevent_initial_call=True,
