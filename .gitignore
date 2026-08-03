@@ -47,3 +47,7 @@ StashStats.md
 .worktrees/
 dev.ipynb
 *.csv
+
+# Teamwork agent scaffolding
+.agents/
+ORIGINAL_REQUEST.md
