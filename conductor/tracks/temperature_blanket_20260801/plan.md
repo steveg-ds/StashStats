@@ -10,15 +10,15 @@
     - [x] Write unit tests verifying schema creation and DBManager queries
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Open-Meteo Weather Client & Database Schemas' (Protocol in workflow.md) [0ad5895]
 
-## Phase 2: Create Temperature Blanket Modal & Configuration Wizard [checkpoint: 166f9c5]
+## Phase 2: Create Temperature Blanket Modal & Configuration Wizard
 - [x] Task: Implement Multi-Step Temperature Blanket Creation Modal [68a351b]
     - [x] Create `stashies/components/temperature_modal.py` with 5 wizard steps (Location/Dates -> Metric/Units -> Tiers -> Stash/New Yarns -> Ravelry Link)
     - [x] Implement yardage requirement calculator comparing against `DBManager` stash totals
     - [x] Write unit tests for wizard step callbacks and yardage calculations
-- [x] Task: Ravelry Project Creation & Stash Linking [2fbae4f]
-    - [x] Implement Ravelry project POST helper in `Model` / `RavelryClient` linking stash yarn packs
-    - [x] Write unit tests mocking Ravelry API responses
-- [x] Task: Conductor - User Manual Verification 'Phase 2: Create Temperature Blanket Modal & Configuration Wizard' (Protocol in workflow.md) [166f9c5]
+- [ ] Task: Ravelry Project Creation & Stash Linking
+    - [ ] Implement Ravelry project POST helper in `Model` / `RavelryClient` linking stash yarn packs
+    - [ ] Write unit tests mocking Ravelry API responses
+- [ ] Task: Conductor - User Manual Verification 'Phase 2: Create Temperature Blanket Modal & Configuration Wizard' (Protocol in workflow.md)
 
 ## Phase 3: Dash UI Tab & 365-Day Grid Visualization
 - [ ] Task: Implement Temperature Blanket Tab Layout & 365-Day Row Grid
