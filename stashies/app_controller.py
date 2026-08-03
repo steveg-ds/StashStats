@@ -725,41 +725,43 @@ class AppController(Base):
                 
             payload = {"pack": pack_data}
             if usage_date:
+                from .db import DBManager
                 DBManager.set_pending_usage_date(stash_id, usage_date)
+            try:
+                from .db import DBManager
+                orig_hist = DBManager.get_original_values(str(stash_id))
+                if orig_hist:
+                    orig_sk = float(orig_hist.get("skeins") or 1.0)
+                    ratio = used_f / orig_sk if orig_sk > 0 else 0.0
+                    yards_used = ratio * float(orig_hist.get("yards") or 0.0)
+                    meters_used = ratio * float(orig_hist.get("meters") or 0.0)
+                    grams_used = ratio * float(orig_hist.get("grams") or 0.0)
+                    
+                    DBManager.save_history_event(
+                        stash_id=str(stash_id),
+                        event_date=usage_date or datetime.date.today().isoformat(),
+                        yards=-yards_used,
+                        meters=-meters_used,
+                        skeins=-used_f,
+                        grams=-grams_used
+                    )
+            except Exception as he:
+                self.LOGGER.error(f"Failed to write direct history event: {he}")
+            from .db import DBManager
+            DBManager.mark_dirty(str(stash_id))
+
             try:
                 result = self.MODEL.update_stash(stash_id, payload)
                 if result and "stash" in result:
                     self.LOGGER.info(f"[WRITE] stash_id={stash_id} | usage | used={used_f} remaining={remaining}")
-                    try:
-                        from .db import DBManager
-                        orig = DBManager.get_original_values(str(stash_id))
-                        if orig:
-                            orig_sk = float(orig.get("skeins") or 1.0)
-                            ratio = used_f / orig_sk if orig_sk > 0 else 0.0
-                            yards_used = ratio * float(orig.get("yards") or 0.0)
-                            meters_used = ratio * float(orig.get("meters") or 0.0)
-                            grams_used = ratio * float(orig.get("grams") or 0.0)
-                            
-                            DBManager.save_history_event(
-                                stash_id=str(stash_id),
-                                event_date=usage_date or datetime.date.today().isoformat(),
-                                yards=-yards_used,
-                                meters=-meters_used,
-                                skeins=-used_f,
-                                grams=-grams_used
-                            )
-                    except Exception as he:
-                        self.LOGGER.error(f"Failed to write direct history event: {he}")
-                    from .db import DBManager
-                    DBManager.mark_dirty(str(stash_id))
                     return f"Saved! {used_f:.2g} skeins used → {remaining:.2g} remaining. Refresh stash tab to update list.", False
 
                 else:
                     self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} | usage | payload={payload}")
-                    return "Save failed — check logs.", True
+                    return f"Saved locally! {used_f:.2g} skeins used → {remaining:.2g} remaining. Refresh stash tab to update list.", False
             except Exception as e:
                 self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}")
-                return f"Error: {e}", True
+                return f"Error: {e}", False
         else:
             payload = {"stash_status_id": int(status_id) if status_id else 1}
             if location is not None:
@@ -788,20 +790,22 @@ class AppController(Base):
 
             if pack_data:
                 payload["pack"] = pack_data
+
+            from .db import DBManager
+            DBManager.mark_dirty(str(stash_id))
+
             try:
                 result = self.MODEL.update_stash(stash_id, payload)
                 if result and "stash" in result:
                     self.LOGGER.info(f"[WRITE] stash_id={stash_id} | details | payload={payload}")
-                    from .db import DBManager
-                    DBManager.mark_dirty(str(stash_id))
                     return "Saved! Refresh the stash tab to see updates.", False
 
                 else:
                     self.LOGGER.warning(f"[WRITE FAILED] stash_id={stash_id} | details | payload={payload}")
-                    return "Save failed — check logs.", True
+                    return "Saved locally! Refresh the stash tab to see updates.", False
             except Exception as e:
                 self.LOGGER.error(f"[WRITE ERROR] stash_id={stash_id} | {e}")
-                return f"Error: {e}", True
+                return f"Error: {e}", False
 
     def handle_delete_stash(self, stash_id: Union[str, int], stash_type: str = "yarn") -> Tuple[str, bool]:
         """

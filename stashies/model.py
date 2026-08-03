@@ -605,14 +605,14 @@ class Model(Base):
         return result
 
     def update_stash(self, stash_id: Union[str, int], stash_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Update a stash entry via POST and invalidate local cache for that entry."""
+        """Update a stash entry via PUT and invalidate local cache for that entry."""
         import os
         from .dataclasses import StashPost
 
         username = os.getenv("RAVELRY_USERNAME") or "Thotsky"
         endpoint = f"people/{username}/stash/{stash_id}.json"
         payload = StashPost(**stash_data).model_dump(exclude_none=True)
-        result = self.REQ.post_request(endpoint=endpoint, data=payload)
+        result = self.REQ.put_request(endpoint=endpoint, json_data=payload)
 
         # Invalidate Redis keys for stash_detail:{stash_id} and stash_list:{username} on write success.
         r = self.get_redis()

@@ -34,6 +34,7 @@ class StashPost(BaseModel):
     """
     yarn_id: Optional[int] = Field(default=None)
     colorway_name: Optional[str] = Field(default=None)
+    colorway: Optional[str] = Field(default=None)
     dye_lot: Optional[str] = Field(default=None)
     location: Optional[str] = Field(default=None)
     notes: Optional[str] = Field(default=None)
